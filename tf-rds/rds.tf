@@ -1,40 +1,40 @@
+# main.tf
+
 provider "aws" {
-  region = "us-east-1"  # Set your desired AWS region
+  region = "us-east-1" # Change this to your desired region
+}
+# The RDS instance resource requires an ARN. Look up the ARN of the KMS key.
+data "aws_kms_key" "by_id" {
+  key_id = "1bcd81ac-93cf-4996-be8e-05da6664a39e" # KMS key
 }
 
-resource "aws_db_instance" "example_rds" {
-  identifier            = "example-db-instance"
-  engine                = "mysql"
-  instance_class        = "db.t2.micro"
-  allocated_storage     = 20
+resource "aws_db_instance" "default" {
+  kms_key_id            = data.aws_kms_key.by_id.arn
+  identifier            = "psk1"
+  allocated_storage    = 20
   storage_type          = "gp2"
-  engine_version        = "5.7.30"
-  username              = "komal"
-  password              = "komal@123"
-  publicly_accessible  = true
+  engine               = "mysql"
+  engine_version       = "8.0.33"
+  instance_class        = "db.t3.micro"
+  db_name               = "psk1db"
+  username              = "psk1"
+  password              = "pskpskpsk"
+  storage_encrypted = true
 
-  # Uncomment the following lines to use a specific subnet group and security group
-  # db_subnet_group_name = aws_db_subnet_group.example.name
-  # vpc_security_group_ids = [aws_security_group.example.id]
+#   parameter_group_name = "default:mysql-8-0"
+#   custom_iam_instance_profile = "AWSRDSCustomSQLServerInstanceRole"
+  
+  vpc_security_group_ids = ["sg-02f0ea7e6c53031b3"]
 
-  tags = {
-    Name = "komal-rds"
-  }
+
+
+
+  multi_az              = false
+  availability_zone     = "us-east-1a"
 }
 
-# Uncomment the following block to create a subnet group and security group
-# resource "aws_db_subnet_group" "example" {
-#   name       = "example-subnet-group"
-#   subnet_ids = aws_subnet.example[*].id
-# }
 
-# resource "aws_security_group" "example" {
-#   name        = "example-security-group"
-#   description = "Example security group for RDS"
-#   ingress {
-#     from_port   = 3306
-#     to_port     = 3306
-#     protocol    = "tcp"
-#     cidr_blocks = ["0.0.0.0/0"]
-#   }
-# }
+resource "aws_db_subnet_group" "komal-subnet-group2" {
+  name       = "komal-subnet-group2"
+  subnet_ids = ["subnet-0e197f08b5b755257", "subnet-046277c041194b849","subnet-0684def2973a370da", "subnet-0c91eb495e92fc850","subnet-04b7d58a379c261f2"] 
+}
