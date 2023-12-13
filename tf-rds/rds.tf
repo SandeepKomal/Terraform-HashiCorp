@@ -19,6 +19,7 @@ resource "aws_db_instance" "default" {
   db_name               = "psk1db"
   username              = "psk1"
   password              = "pskpskpsk"
+  publicly_accessible   = true
   storage_encrypted = true
 
 #   parameter_group_name = "default:mysql-8-0"
