@@ -1,3 +1,4 @@
+//////////// installation //////////////////////
 OS - Amazon Linux
 
 1) sudo yum install -y yum-utils
@@ -9,3 +10,11 @@ OS - Amazon Linux
 Verify Installation
 
 4) terraform -help
+
+/////////////// commands to run terraform ////////////////
+
+1) terraform init
+
+2) terraform plan
+
+3) terraform apply
