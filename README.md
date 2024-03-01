@@ -13,3 +13,16 @@ sudo yum -y install terraform
 ```
 terraform -help
 ```
+
+### Commands to Run terraform 
+```
+terraform init
+```
+```
+terraform plan
+```
+```
+terraform apply
+```
+
+
