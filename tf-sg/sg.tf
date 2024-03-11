@@ -6,48 +6,47 @@ provider "aws" {
 resource "aws_security_group" "aws12_security_grp" {
   name        = "Batch-12 Security Group"
   description = "security group for allowing SSH traffic to EC2 instances"
-  vpc_id = "vpc-09b77ec6cfd8f4129"
+  vpc_id      = var.vpc_id
 
- ingress {
+  ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.ssh_cidr_block
   }
 
- # outbound from Ec
   egress {
     from_port   = 0
     to_port     = 0
-    protocol    = -1
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags= {
+  tags = {
     Name = "Batch-12 Security Group"
   }
 }
+
 resource "aws_security_group" "aws13_security_grp" {
   name        = "Batch-13 Security Group"
-  description = "security group for allowing SSH traffic to EC2 instances"
-  vpc_id = "vpc-09b77ec6cfd8f4129"
+  description = "security group for allowing HTTPS traffic to EC2 instances"
+  vpc_id      = var.vpc_id
 
- ingress {
+  ingress {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.https_cidr_block
   }
 
- # outbound from Ec
   egress {
     from_port   = 0
     to_port     = 0
-    protocol    = -1
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags= {
+  tags = {
     Name = "Batch-13 Security Group"
   }
 }
