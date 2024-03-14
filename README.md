@@ -24,5 +24,9 @@ terraform plan
 ```
 terraform apply
 ```
+```
+terraform apply --auto-approve
+```
+#### This command will automatically apply your Terraform configuration changes without requiring any manual confirmation
 
 
