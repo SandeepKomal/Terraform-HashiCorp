@@ -10,7 +10,7 @@ resource "aws_ecs_task_definition" "app" {
 
   container_definitions = jsonencode([{
     name         = "app",
-    image        = "nginx:latest",
+    image        = var.image,
     essential    = true,
     portMappings = [{ containerPort = 80, hostPort = 80 }],
 
@@ -21,7 +21,7 @@ resource "aws_ecs_task_definition" "app" {
     logConfiguration = {
       logDriver = "awslogs",
       options = {
-        "awslogs-region"        = "us-east-1",
+        "awslogs-region"        = "us-east-2",
         "awslogs-group"         = aws_cloudwatch_log_group.ecs.name,
         "awslogs-stream-prefix" = "app"
       }

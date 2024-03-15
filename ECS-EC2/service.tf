@@ -3,13 +3,13 @@
 resource "aws_security_group" "ecs_task" {
   name_prefix = "ecs-task-sg-"
   description = "Allow all traffic within the VPC"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = var.aws_vpc
 
   ingress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = [aws_vpc.main.cidr_block]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
@@ -28,7 +28,7 @@ resource "aws_ecs_service" "app" {
 
   network_configuration {
     security_groups = [aws_security_group.ecs_task.id]
-    subnets         = aws_subnet.public[*].id
+    subnets         = var.aws_subnet.*
   }
 
   capacity_provider_strategy {

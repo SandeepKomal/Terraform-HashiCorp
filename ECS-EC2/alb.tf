@@ -3,7 +3,7 @@
 resource "aws_security_group" "http" {
   name_prefix = "http-sg-"
   description = "Allow all HTTP/HTTPS traffic from public"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = var.aws_vpc
 
   dynamic "ingress" {
     for_each = [80, 443]
@@ -26,13 +26,13 @@ resource "aws_security_group" "http" {
 resource "aws_lb" "main" {
   name               = "demo-alb"
   load_balancer_type = "application"
-  subnets            = aws_subnet.public[*].id
+  subnets            = var.aws_subnet.*
   security_groups    = [aws_security_group.http.id]
 }
 
 resource "aws_lb_target_group" "app" {
   name_prefix = "app-"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = var.aws_vpc
   protocol    = "HTTP"
   port        = 80
   target_type = "ip"
