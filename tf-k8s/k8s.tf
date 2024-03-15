@@ -1,13 +1,13 @@
 provider "aws" {
-  region = "us-east-1"  # Update with your preferred region
+  region = var.region
 }
 
 resource "aws_eks_cluster" "example" {
-  name     = "example"
+  name     = var.cluster_name
   role_arn = aws_iam_role.example.arn
 
   vpc_config {
-    subnet_ids = ["subnet-0e197f08b5b755257", "subnet-046277c041194b849","subnet-0684def2973a370da", "subnet-0c91eb495e92fc850","subnet-04b7d58a379c261f2"] 
+    subnet_ids = var.subnet_ids
   }
 
   # Ensure that IAM Role permissions are created before and deleted after EKS Cluster handling.

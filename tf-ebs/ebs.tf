@@ -1,16 +1,22 @@
 provider "aws" {
-  region = "us-east-1"  # Specify your desired AWS region
+  region  = var.aws_region
+  # profile = var.aws_profile
 }
 
-resource "aws_ebs_volume" "komalebs" {
-  availability_zone = "us-east-1a"  # Specify the availability zone for the volume
-  size             = 100            # Specify the size of the volume in gigabytes
-  type             = "gp2"          # Specify the volume type (e.g., gp2, io1, st1, sc1)
-  encrypted        = true           # Specify whether the volume should be encrypted
+resource "aws_ebs_volume" "tncebs" {
+  availability_zone = var.ebs_availability_zone
+  size              = var.ebs_size
+  type              = var.ebs_type
+  encrypted         = var.ebs_encrypted
 
   tags = {
-    Name = "komalEBSVolume"
-    Environment = "Production"
+    Name        = var.ebs_name
+    Environment = var.ebs_environment
   }
 }
 
+resource "aws_volume_attachment" "mountvolumetoec2" {
+  device_name = var.device_name
+  instance_id = var.instance_id
+  volume_id = "${aws_ebs_volume.tncebs.id}"
+}

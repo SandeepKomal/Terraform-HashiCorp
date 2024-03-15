@@ -1,15 +1,15 @@
 resource "aws_eks_node_group" "example" {
   cluster_name    = aws_eks_cluster.example.name
-  node_group_name = "example"
+  node_group_name = var.cluster_name
   node_role_arn   = aws_iam_role.node_group_role.arn
-  subnet_ids = ["subnet-0e197f08b5b755257", "subnet-046277c041194b849","subnet-0684def2973a370da", "subnet-0c91eb495e92fc850","subnet-04b7d58a379c261f2"] 
+  subnet_ids      = var.subnet_ids
   capacity_type   = "ON_DEMAND"
-  instance_types  = ["t3.large"]
+  instance_types  = [var.node_instance_type]
 
   scaling_config {
-    desired_size = 2
-    max_size     = 4
-    min_size     = 1
+    desired_size = var.node_desired_size
+    max_size     = var.node_max_size
+    min_size     = var.node_min_size
   }
 
   update_config {
@@ -53,4 +53,28 @@ resource "aws_iam_role_policy_attachment" "example-AmazonEKS_CNI_Policy" {
 resource "aws_iam_role_policy_attachment" "example-AmazonEC2ContainerRegistryReadOnly" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
   role       = aws_iam_role.node_group_role.name
+}
+
+resource "aws_launch_template" "example" {
+  name_prefix   = "example-nodegroup-lt-"
+  image_id      = var.ami_id
+  instance_type = var.node_instance_type
+
+  block_device_mappings {
+    device_name = "/dev/xvda"
+
+    ebs {
+      volume_size = 20
+    }
+  }
+
+  capacity_reservation_specification {
+    capacity_reservation_preference = "open"
+  }
+}
+
+resource "aws_iam_instance_profile" "example" {
+  name = "example-instance-profile"
+
+  role = aws_iam_role.node_group_role.name
 }

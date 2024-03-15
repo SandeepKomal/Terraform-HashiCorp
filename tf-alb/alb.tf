@@ -1,20 +1,20 @@
 provider "aws" {
-  region = "us-east-1"  # Adjust the region as needed
+  region = var.region
 }
 
 resource "aws_lb" "my_alb2" {
-  name               = "my-alb2"
-  internal           = false  # Set to true if the ALB should be internal
+  name               = var.load_balancer_name
+  internal           = var.internal
   load_balancer_type = "application"
-  security_groups    = ["sg-02f0ea7e6c53031b3"]  # Replace with your security group ID(s)
-  subnets            = ["subnet-0e197f08b5b755257", "subnet-046277c041194b849","subnet-0684def2973a370da", "subnet-0c91eb495e92fc850","subnet-04b7d58a379c261f2"]  # Replace with your subnet ID(s)
-
-  enable_deletion_protection = false # Set to true if you want deletion protection
+  security_groups    = var.security_groups
+  subnets            = var.subnets
+  enable_deletion_protection = var.enable_deletion_protection
 }
+
 resource "aws_lb_listener" "my_listener" {
   load_balancer_arn = aws_lb.my_alb2.arn
-  port              = 80
-  protocol          = "HTTP"
+  port              = var.listener_port
+  protocol          = var.listener_protocol
 
   default_action {
     type = "fixed-response"
@@ -28,14 +28,14 @@ resource "aws_lb_listener" "my_listener" {
 }
 
 resource "aws_lb_target_group" "my_target_group" {
-  name        = "my-target-group"
-  port        = 80
-  protocol    = "HTTP"
-  vpc_id      = "vpc-09b77ec6cfd8f4129"  # Replace with your VPC ID
+  name        = var.target_group_name
+  port        = var.target_group_port
+  protocol    = var.target_group_protocol
+  vpc_id      = var.vpc_id
   target_type = "instance"
 
   health_check {
-    path = "/"
+    path = var.health_check_path
   }
 }
 
@@ -49,8 +49,7 @@ resource "aws_lb_listener_rule" "my_rule" {
 
   condition {
     path_pattern {
-      values = ["/"]
-   
+      values = var.listener_rule_path_pattern
+    }
   }
-}
 }
