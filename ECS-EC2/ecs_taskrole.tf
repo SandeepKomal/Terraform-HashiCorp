@@ -1,5 +1,7 @@
 # --- ECS Task Role ---
 
+Trust Policy document to allow ECS tasks o call AWS services on your behalf.
+
 data "aws_iam_policy_document" "ecs_task_doc" {
   statement {
     actions = ["sts:AssumeRole"]
