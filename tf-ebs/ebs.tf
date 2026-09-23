@@ -1,6 +1,5 @@
 provider "aws" {
-  region  = var.aws_region
-  # profile = var.aws_profile
+  region = var.aws_region
 }
 
 resource "aws_ebs_volume" "tncebs" {
@@ -18,5 +17,5 @@ resource "aws_ebs_volume" "tncebs" {
 resource "aws_volume_attachment" "mountvolumetoec2" {
   device_name = var.device_name
   instance_id = var.instance_id
-  volume_id = "${aws_ebs_volume.tncebs.id}"
+  volume_id   = aws_ebs_volume.tncebs.id
 }
