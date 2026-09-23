@@ -14,7 +14,7 @@ resource "aws_subnet" "example_subnet" {
   # Other optional parameters
   map_public_ip_on_launch = true
 
-  tags {
+  tags = {
     Name = "komal Example Subnet"
   }
 }
