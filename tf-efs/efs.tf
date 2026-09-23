@@ -1,9 +1,9 @@
 provider "aws" {
-  region = "us-east-1"  # Change this to your desired AWS region
+  region = "us-east-1" # Change this to your desired AWS region
 }
 
 resource "aws_efs_file_system" "example" {
-  creation_token = "my-efs"
+  creation_token   = "my-efs"
   performance_mode = "generalPurpose"
 
   lifecycle_policy {
