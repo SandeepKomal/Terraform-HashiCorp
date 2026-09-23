@@ -1,20 +1,29 @@
-//////////// installation //////////////////////
-OS - Amazon Linux
+# Terraform installation
 
-1) sudo yum install -y yum-utils
+## Amazon Linux / RHEL-compatible systems
 
-2) sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+Install the HashiCorp repository and Terraform using the current HashiCorp installation instructions for your distribution.
 
-3) sudo yum -y install terraform
+After installation:
 
-Verify Installation
+    terraform version
 
-4) terraform -help
+## Basic workflow
 
-/////////////// commands to run terraform ////////////////
+Run these commands from one of the example directories:
 
-1) terraform init
+    terraform init
+    terraform fmt
+    terraform validate
+    terraform plan
+    terraform apply
 
-2) terraform plan
+Review the plan before applying changes.
 
-3) terraform apply
+Use:
+
+    terraform destroy
+
+when you are finished with temporary learning resources.
+
+Do not store AWS credentials, passwords, Terraform state, or other secrets in the repository.
