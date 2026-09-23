@@ -1,29 +1,31 @@
 variable "aws_region" {
-       description = "The AWS region to create Infrastructure" 
-       default     = "us-east-1" 
+  description = "AWS region"
+  type        = string
+  default     = "us-east-1"
 }
 
-variable "key_name" { 
-    description = " SSH key to connect to ec2 instance" 
-    default     =  "komaldockerp1" 
+variable "key_name" {
+  description = "Existing EC2 key pair name"
+  type        = string
 }
 
-variable "instance_type" { 
-    description = "instance type for ec2" 
-    default     =  "t2.micro" 
+variable "instance_type" {
+  description = "EC2 instance type"
+  type        = string
+  default     = "t3.micro"
 }
 
-variable "ami_id" { 
-    description = "AMI for Amazon-Linux Ec2 instance" 
-    default     = "ami-0230bd60aa48260c6" 
+variable "ami_id" {
+  description = "AMI ID compatible with the selected AWS region"
+  type        = string
 }
 
-variable "subnet_id" { 
-    description = "Subnet to launch Amazon-Linux Ec2 instance" 
-    default     = "subnet-0684def2973a370da" 
+variable "subnet_id" {
+  description = "Existing subnet ID"
+  type        = string
 }
 
-variable "aws_security_group" { 
-    description = "sg to launch Amazon-Linux Ec2 instance" 
-    default     = "sg-0072f31d9ee310c5a" 
+variable "aws_security_group" {
+  description = "Existing security group ID"
+  type        = string
 }
