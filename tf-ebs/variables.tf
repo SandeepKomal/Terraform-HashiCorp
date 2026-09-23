@@ -1,50 +1,55 @@
 variable "aws_region" {
-  description = "The AWS region where the resources will be provisioned."
-   type        = string
-}
-
-variable "aws_profile" {
-  description = "The AWS profile to be used for authentication."
+  description = "AWS region where resources are provisioned"
   type        = string
 }
 
+variable "aws_profile" {
+  description = "Optional AWS profile used by your local CLI"
+  type        = string
+  default     = null
+  nullable    = true
+}
+
 variable "ebs_availability_zone" {
-  description = "The availability zone for the EBS volume."
+  description = "Availability zone for the EBS volume"
   type        = string
 }
 
 variable "ebs_size" {
-  description = "The size of the EBS volume in gigabytes."
+  description = "EBS volume size in GB"
   type        = number
 }
 
 variable "ebs_type" {
-  description = "The type of the EBS volume."
+  description = "EBS volume type"
   type        = string
+  default     = "gp3"
 }
 
 variable "ebs_encrypted" {
-  description = "Specifies whether the EBS volume should be encrypted."
-  type        = string
+  description = "Whether the EBS volume is encrypted"
+  type        = bool
+  default     = true
 }
 
 variable "ebs_name" {
-  description = "The name tag for the EBS volume."
+  description = "Name tag for the EBS volume"
   type        = string
 }
 
 variable "ebs_environment" {
-  description = "The environment tag for the EBS volume."
+  description = "Environment tag"
   type        = string
+  default     = "dev"
 }
+
 variable "instance_id" {
-  description = "The instance id to attach to the EBS volume."
+  description = "EC2 instance ID to attach the volume to"
   type        = string
 }
 
 variable "device_name" {
-  description = "The device name to attach to instance."
+  description = "Non-root device name to attach to the instance"
   type        = string
+  default     = "/dev/sdf"
 }
-
-
