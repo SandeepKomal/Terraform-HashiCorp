@@ -27,7 +27,7 @@ resource "aws_launch_template" "mysvc" {
 }
 
 resource "aws_autoscaling_group" "mysvc" {
-  name                      = "tcn-$""{aws_launch_template.mysvc.latest_version}"
+  name                      = "tcn-${aws_launch_template.mysvc.latest_version}"
   health_check_type         = "EC2" # Changed health check type to EC2
   health_check_grace_period = 120
   termination_policies      = ["OldestInstance"]

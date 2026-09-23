@@ -21,7 +21,7 @@ resource "aws_instance" "sandy_instance" {
   instance_type     = "t2.micro"
   availability_zone = "us-east-1d"
 
-  tags {
+  tags = {
     Name = "sandyEc2"
   }
 }
