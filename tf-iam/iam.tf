@@ -1,24 +1,40 @@
 provider "aws" {
-  region = "us-east-1"
+  region = var.aws_region
+}
+
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "ami_id" {
+  description = "AMI ID compatible with the selected region"
+  type        = string
+}
+
+variable "instance_type" {
+  description = "EC2 instance type"
+  type        = string
+  default     = "t3.micro"
+}
+
+variable "bucket_name" {
+  description = "Existing S3 bucket name"
+  type        = string
 }
 
 resource "aws_iam_role" "example_role" {
-  name = "examplerole"
+  name = "example-ec2-s3-readonly"
 
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "ec2.amazonaws.com"
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
-}
-EOF
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "ec2.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
 }
 
 resource "aws_iam_role_policy_attachment" "example_attachment" {
@@ -27,14 +43,13 @@ resource "aws_iam_role_policy_attachment" "example_attachment" {
 }
 
 resource "aws_iam_instance_profile" "example_profile" {
-  name = "example_profile"
+  name = "example-profile"
   role = aws_iam_role.example_role.name
 }
 
 resource "aws_instance" "example_instance" {
-  ami           = "ami-0230bd60aa48260c6"
-  instance_type = "t2.micro"
-  
+  ami                  = var.ami_id
+  instance_type        = var.instance_type
   iam_instance_profile = aws_iam_instance_profile.example_profile.name
 
   tags = {
@@ -43,27 +58,15 @@ resource "aws_instance" "example_instance" {
 }
 
 resource "aws_s3_bucket_policy" "example_bucket_policy" {
-  bucket = "example-bucket"
+  bucket = var.bucket_name
 
   policy = jsonencode({
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Effect": "Allow",
-        "Principal": {
-          "AWS": "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${aws_iam_role.example_role.name}"
-        },
-        "Action": [
-          "s3:GetObject",
-          "s3:ListBucket"
-        ],
-        "Resource": [
-          "arn:aws:s3:::example-bucket",
-          "arn:aws:s3:::example-bucket/*"
-        ]
-      }
-    ]
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { AWS = aws_iam_role.example_role.arn }
+      Action    = ["s3:GetObject", "s3:ListBucket"]
+      Resource  = ["arn:aws:s3:::${var.bucket_name}", "arn:aws:s3:::${var.bucket_name}/*"]
+    }]
   })
 }
-
-data "aws_caller_identity" "current" {}

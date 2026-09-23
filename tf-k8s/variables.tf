@@ -1,40 +1,45 @@
 variable "region" {
-  description = "The AWS region"
+  description = "AWS region"
+  type        = string
   default     = "us-east-2"
 }
 
 variable "cluster_name" {
-  description = "The name of the EKS cluster"
+  description = "EKS cluster name"
+  type        = string
   default     = "example"
 }
 
 variable "subnet_ids" {
-  description = "List of subnet IDs for the EKS cluster"
+  description = "At least two subnet IDs in different availability zones"
   type        = list(string)
-  default     = []
+
+  validation {
+    condition     = length(var.subnet_ids) >= 2
+    error_message = "Provide at least two subnet IDs."
+  }
 }
 
 variable "node_instance_type" {
-  description = "The EC2 instance type for the EKS nodes"
+  description = "EKS managed node instance type"
+  type        = string
   default     = "t3.medium"
 }
 
 variable "node_desired_size" {
-  description = "The desired number of nodes in the EKS node group"
+  description = "Desired number of nodes"
+  type        = number
   default     = 2
 }
 
 variable "node_max_size" {
-  description = "The maximum number of nodes in the EKS node group"
+  description = "Maximum number of nodes"
+  type        = number
   default     = 4
 }
 
 variable "node_min_size" {
-  description = "The minimum number of nodes in the EKS node group"
+  description = "Minimum number of nodes"
+  type        = number
   default     = 1
-}
-
-variable "ami_id" {
-  description = "The ami_id for the launc h template"
-  default     = "ami-0e0bf53f6def86294"
 }

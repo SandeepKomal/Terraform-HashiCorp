@@ -1,11 +1,10 @@
 provider "aws" {
-   region = var.aws_region
+  region = var.aws_region
 }
 
-#Create security group with firewall rules
 resource "aws_security_group" "tcn_security_grp" {
-  name        = "tcn Security Group"
-  description = "security group for allowing SSH traffic to EC2 instances"
+  name        = "tcn-security-group"
+  description = "Security group for HTTPS and restricted SSH"
   vpc_id      = var.vpc_id
 
   ingress {
@@ -19,7 +18,7 @@ resource "aws_security_group" "tcn_security_grp" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = var.ssh_cidr_block
+    cidr_blocks = var.https_cidr_block
   }
 
   egress {
@@ -30,7 +29,6 @@ resource "aws_security_group" "tcn_security_grp" {
   }
 
   tags = {
-    Name = "tcn Security Group"
+    Name = "tcn-security-group"
   }
 }
-
