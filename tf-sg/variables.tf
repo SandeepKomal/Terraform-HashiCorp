@@ -9,11 +9,17 @@ variable "aws_region" {
 }
 
 variable "ssh_cidr_block" {
-  description = "Trusted CIDR blocks allowed to access SSH. Avoid 0.0.0.0/0."
+  description = "Trusted CIDR blocks allowed to access SSH. Never use 0.0.0.0/0."
   type        = list(string)
 
   validation {
     condition     = alltrue([for cidr in var.ssh_cidr_block : cidr != "0.0.0.0/0"])
     error_message = "Do not expose SSH to the entire internet."
   }
+}
+
+variable "https_cidr_block" {
+  description = "CIDR blocks allowed to access HTTPS"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
 }
