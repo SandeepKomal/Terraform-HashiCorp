@@ -1,83 +1,95 @@
 variable "region" {
-  description = "The AWS region where resources will be created."
+  description = "AWS region"
   type        = string
-  default     = "us-east-2" # Change this to your desired region
+  default     = "us-east-2"
 }
 
 variable "db_instance_identifier" {
-  description = "The identifier for the RDS database instance."
+  description = "RDS instance identifier"
   type        = string
   default     = "database-tcn"
 }
 
 variable "allocated_storage" {
-  description = "The allocated storage for the RDS database instance (in GB)."
+  description = "Allocated storage in GB"
   type        = number
   default     = 20
 }
 
 variable "storage_type" {
-  description = "The storage type for the RDS database instance."
+  description = "RDS storage type"
   type        = string
-  default     = "gp2"
+  default     = "gp3"
 }
 
 variable "engine" {
-  description = "The database engine for the RDS database instance."
+  description = "Database engine"
   type        = string
   default     = "mysql"
 }
 
 variable "engine_version" {
-  description = "The version of the database engine for the RDS database instance."
+  description = "Database engine version supported by the selected AWS region"
   type        = string
-  default     = "8.0.33"
+  default     = "8.0"
 }
 
 variable "instance_class" {
-  description = "The instance class for the RDS database instance."
+  description = "RDS instance class"
   type        = string
   default     = "db.t3.micro"
 }
 
 variable "db_name" {
-  description = "The name of the database to be created."
+  description = "Initial database name"
   type        = string
   default     = "tcn"
 }
 
 variable "db_username" {
-  description = "The username for accessing the database."
+  description = "Database username"
   type        = string
   default     = "tcn"
 }
 
 variable "db_password" {
-  description = "The password for accessing the database."
+  description = "Database password supplied through a secure variable mechanism"
   type        = string
-  default     = "tcntcntcn"
+  sensitive   = true
 }
 
 variable "vpc_security_group_ids" {
-  description = "The list of security group IDs associated with the RDS instance."
+  description = "Security groups associated with the RDS instance"
   type        = list(string)
-  default     = ["sg-06ac155edea432fbc"]
 }
 
 variable "availability_zone" {
-  description = "The availability zone for the RDS instance."
+  description = "Optional AZ for single-AZ RDS"
   type        = string
-  default     = "us-east-2b"
+  default     = null
+  nullable    = true
+}
+
+variable "multi_az" {
+  description = "Whether to deploy RDS Multi-AZ"
+  type        = bool
+  default     = false
+}
+
+variable "backup_retention_period" {
+  description = "Automated backup retention in days"
+  type        = number
+  default     = 7
 }
 
 variable "skip_final_snapshot" {
-  description = "Whether to skip the final snapshot when deleting the RDS instance."
+  description = "Whether to skip the final snapshot on deletion"
   type        = bool
   default     = true
 }
 
 variable "final_snapshot_identifier" {
-  description = "The identifier for the final snapshot when deleting the RDS instance."
+  description = "Final snapshot identifier when skip_final_snapshot is false"
   type        = string
-  default     = "tcn-snapshot-rds"
+  default     = "tcn-final-snapshot"
 }
