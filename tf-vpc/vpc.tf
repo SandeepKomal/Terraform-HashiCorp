@@ -22,7 +22,7 @@ resource "aws_internet_gateway" "internet-gateway" {
 resource "aws_subnet" "public-subnet-1" {
   vpc_id                  = aws_vpc.vpc.id
   cidr_block              = var.public-subnet-1-cidr
-  availability_zone       = "$""{var.region}a"
+  availability_zone       = "${var.region}a"
   map_public_ip_on_launch = true
 
   tags = {
@@ -34,7 +34,7 @@ resource "aws_subnet" "public-subnet-1" {
 resource "aws_subnet" "public-subnet-2" {
   vpc_id                  = aws_vpc.vpc.id
   cidr_block              = var.public-subnet-2-cidr
-  availability_zone       = "$""{var.region}b"
+  availability_zone       = "${var.region}b"
   map_public_ip_on_launch = true
 
   tags = {
@@ -72,7 +72,7 @@ resource "aws_route_table_association" "public-subnet-2-route-table-association"
 resource "aws_subnet" "private-subnet-1" {
   vpc_id                  = aws_vpc.vpc.id
   cidr_block              = var.private-subnet-1-cidr
-  availability_zone       = "$""{var.region}a"
+  availability_zone       = "${var.region}a"
   map_public_ip_on_launch = false
 
   tags = {
@@ -84,7 +84,7 @@ resource "aws_subnet" "private-subnet-1" {
 resource "aws_subnet" "private-subnet-2" {
   vpc_id                  = aws_vpc.vpc.id
   cidr_block              = var.private-subnet-2-cidr
-  availability_zone       = "$""{var.region}b"
+  availability_zone       = "${var.region}b"
   map_public_ip_on_launch = false
 
   tags = {
@@ -96,7 +96,7 @@ resource "aws_subnet" "private-subnet-2" {
 resource "aws_subnet" "private-subnet-3" {
   vpc_id                  = aws_vpc.vpc.id
   cidr_block              = var.private-subnet-3-cidr
-  availability_zone       = "$""{var.region}a"
+  availability_zone       = "${var.region}a"
   map_public_ip_on_launch = false
 
   tags = {
@@ -108,7 +108,7 @@ resource "aws_subnet" "private-subnet-3" {
 resource "aws_subnet" "private-subnet-4" {
   vpc_id                  = aws_vpc.vpc.id
   cidr_block              = var.private-subnet-4-cidr
-  availability_zone       = "$""{var.region}b"
+  availability_zone       = "${var.region}b"
   map_public_ip_on_launch = false
 
   tags = {
