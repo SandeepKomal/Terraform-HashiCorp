@@ -1,20 +1,19 @@
 variable "vpc_id" {
-  description = "The ID of the VPC where the security groups will be created"
+  description = "VPC ID where the security group will be created"
   type        = string
 }
 
 variable "aws_region" {
-    description = "The AWS region things are created in"
+  description = "AWS region"
+  type        = string
 }
 
 variable "ssh_cidr_block" {
-  description = "CIDR block for SSH traffic"
+  description = "Trusted CIDR blocks allowed to access SSH. Avoid 0.0.0.0/0."
   type        = list(string)
-  default     = ["0.0.0.0/0"]
-}
 
-# variable "https_cidr_block" {
-#   description = "CIDR block for HTTPS traffic"
-#   type        = list(string)
-#   default     = ["0.0.0.0/0"]
-# }
+  validation {
+    condition     = alltrue([for cidr in var.ssh_cidr_block : cidr != "0.0.0.0/0"])
+    error_message = "Do not expose SSH to the entire internet."
+  }
+}
