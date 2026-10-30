@@ -8,7 +8,7 @@ A practical collection of Terraform examples for learning and demonstrating AWS 
 
 **[Terraform Quest](https://sandeepkomal.github.io/Terraform-HashiCorp/)** is the free learning site for this repository, built from `site/`:
 
-- a **playground**: a `terraform` CLI in the browser over a modelled configuration, state and AWS account, with 43 incidents (state locks, drift, replacements, imports, modules, provider versions, CI and security), each with hints and wrong moves that do not fix it;
+- a **playground**: a `terraform` CLI in the browser over a modelled configuration, state and AWS account, with 49 incidents (state locks and recovery, drift, replacements, imports, modules, provider upgrades, API limits, tests, CI and security), each with hints and wrong moves that do not fix it;
 - an **HCL X-ray** that explains every line of a `.tf` file and flags risky settings;
 - a **troubleshooting reference** for the common Terraform errors, also as plain HTML in [`site/problems.html`](site/problems.html);
 - a 16-level path that links these examples, a quiz, a cheat sheet and an architecture diagram.

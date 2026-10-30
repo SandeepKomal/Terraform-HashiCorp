@@ -43,7 +43,7 @@ for (const s of SCENARIOS) {
     assert.strictEqual(H.format(text), text, `${s.id}: ${f} is canonical`);
   }
 }
-assert.ok(SCENARIOS.length >= 40, "at least 40 scenarios");
+assert.ok(SCENARIOS.length >= 49, "at least 49 scenarios");
 
 // State: removed, moved, taint.
 {
@@ -254,6 +254,34 @@ w.fs["main.tf"] += '\nresource "aws_s3_bucket_ownership_controls" "reports" {\n 
 w = fresh("publicbucket"); w.fs["main.tf"] = 'resource "aws_s3_bucket" "reports" {\n  bucket = "quest-partner-reports"\n}\n\nresource "aws_s3_bucket_public_access_block" "reports" {\n  bucket                  = aws_s3_bucket.reports.id\n  block_public_acls       = true\n  block_public_policy     = true\n  ignore_public_acls      = true\n  restrict_public_buckets = true\n}\n'; run(w,"terraform apply -auto-approve"); assert(won(w),"public");
 w = fresh("credentials"); sub(w,"versions.tf",'region = "eu-west-1"','region     = "eu-west-1"\n  access_key = "x"\n  secret_key = "y"'); run(w,"terraform plan"); assert(!won(w)); 
 w = fresh("credentials"); run(w,"export AWS_PROFILE=quest"); run(w,"terraform plan"); assert(won(w),"creds");
+}
+
+// Throttling, timeouts, state recovery, provider upgrades, tests, and rules that fight.
+{
+let w = fresh("throttling"); quiet(last(run(w,"terraform apply -auto-approve"),9)); run(w,"terraform apply -auto-approve"); assert(!won(w));
+w = fresh("throttling"); run(w,"terraform apply -auto-approve -parallelism=2"); assert(won(w),"parallelism");
+w = fresh("throttling"); sub(w,"versions.tf","\n  max_retries = 1",""); run(w,"terraform fmt"); run(w,"terraform apply -auto-approve"); assert(won(w),"retries");
+w = fresh("timeouts"); quiet(run(w,"terraform plan").split("\n").filter(l=>/#|Plan/.test(l)).join("\n")); run(w,"terraform apply -auto-approve"); assert(!won(w)); quiet(w.scenario.check(w));
+w = fresh("timeouts"); quiet(run(w,"terraform untaint aws_db_instance.warehouse")); sub(w,"main.tf","  skip_final_snapshot         = true\n","  skip_final_snapshot         = true\n\n  timeouts {\n    create = \"120m\"\n  }\n"); quiet(last(run(w,"terraform plan"),4)); assert(won(w),"timeouts");
+w = fresh("staterecover"); quiet(run(w,"terraform plan").split("\n").filter(l=>/#|Plan/.test(l)).join("\n"));
+const vs = JSON.parse(run(w,"aws s3api list-object-versions --bucket quest-tfstate --prefix shop/terraform.tfstate")).Versions; quiet(vs.length);
+quiet(run(w,`aws s3api get-object --bucket quest-tfstate --key shop/terraform.tfstate --version-id ${vs[1].VersionId} recovered.tfstate`).slice(0,80));
+quiet(run(w,"terraform state push recovered.tfstate")); assert(!won(w));
+run(w,"terraform state push -force recovered.tfstate"); quiet(last(run(w,"terraform plan"),4)); assert(won(w),"recover");
+w = fresh("staterecover"); quiet(last(run(w,"terraform apply -auto-approve"),8)); assert(!won(w)); quiet(w.scenario.check(w));
+w = fresh("awsv5upgrade"); quiet(last(run(w,"terraform plan"),4)); quiet(last(run(w,"terraform init -upgrade"),3));
+quiet(run(w,"terraform plan"));
+sub(w,"main.tf",'  name                        = "reports"','  db_name                     = "reports"');
+sub(w,"main.tf",'  acl    = "private"\n\n  versioning {\n    enabled = true\n  }\n','');
+w.fs["main.tf"] += '\nresource "aws_s3_bucket_versioning" "reports" {\n  bucket = aws_s3_bucket.reports.id\n\n  versioning_configuration {\n    status = "Enabled"\n  }\n}\n';
+quiet(run(w,"terraform apply -auto-approve").split("\n").filter(l=>/#|Plan|Error|Warn/.test(l)).join("\n")); run(w,"terraform plan"); assert(won(w),"v5");
+w = fresh("tftest"); quiet(run(w,"terraform test")); 
+sub(w,"tests/naming.tftest.hcl",'"quest-logs-dev"','"quest-logs-data"'); run(w,"terraform test"); assert(!won(w));
+w = fresh("tftest"); sub(w,"main.tf","${var.team}\"","${var.environment}\""); quiet(last(run(w,"terraform test"),3)); assert(won(w),"tftest");
+w = fresh("perpetualdiff"); quiet(run(w,"terraform plan").split("\n").filter(l=>/#|Plan|from_port/.test(l)).join("\n")); run(w,"terraform apply -auto-approve"); quiet(run(w,"terraform plan").split("\n").filter(l=>/#|Plan/.test(l)).join("\n")); assert(!won(w));
+w = fresh("perpetualdiff"); sub(w,"main.tf","    cidr_blocks = [\"10.0.1.0/24\"]\n  }\n","    cidr_blocks = [\"10.0.1.0/24\"]\n  }\n\n  ingress {\n    from_port   = 9187\n    to_port     = 9187\n    protocol    = \"tcp\"\n    cidr_blocks = [\"10.0.50.0/24\"]\n  }\n"); delete w.fs["monitoring.tf"];
+quiet(run(w,"terraform apply -auto-approve").split("\n").filter(l=>/#|Plan|Error/.test(l)).join("\n")); quiet(run(w,"terraform plan").split("\n").filter(l=>/#|Plan|No changes/.test(l)).join("\n")); run(w,"terraform apply -auto-approve"); run(w,"terraform plan"); assert(won(w),"perpetual");
+w = fresh("perpetualdiff"); sub(w,"main.tf","\n  ingress {\n    from_port   = 5432\n    to_port     = 5432\n    protocol    = \"tcp\"\n    cidr_blocks = [\"10.0.1.0/24\"]\n  }\n",""); w.fs["main.tf"] += '\nresource "aws_vpc_security_group_ingress_rule" "app" {\n  security_group_id = aws_security_group.db.id\n  ip_protocol       = "tcp"\n  from_port         = 5432\n  to_port           = 5432\n  cidr_ipv4         = "10.0.1.0/24"\n}\n'; quiet(last(run(w,"terraform apply -auto-approve"),7));
 }
 
 // The first five basics.

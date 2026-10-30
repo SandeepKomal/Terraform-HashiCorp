@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
-  <meta name="description" content="Every common Terraform error with its exact message, what it means, the likely causes, how to confirm, the fix and how to prevent it: 49 entries.">
+  <meta name="description" content="Every common Terraform error with its exact message, what it means, the likely causes, how to confirm, the fix and how to prevent it: 58 entries.">
   <meta property="og:type" content="article">
   <meta property="og:title" content="Terraform errors and fixes: Terraform Quest">
   <meta property="og:description" content="Exact Terraform error messages with causes, fixes and prevention.">
@@ -17,7 +17,7 @@
   <main class="wrap problems-page">
     <p class="eyebrow"><img src="logo.svg" alt="" width="28" height="28"><a href="./">Terraform Quest</a></p>
     <h1>Terraform errors and fixes</h1>
-    <p class="lede">49 errors and surprises, each with the exact message, what it means, how to confirm the cause, the fix and how to prevent it. The <a href="./#doctor">interactive version</a> also searches pasted error text and opens each fix in a practice scenario.</p>
+    <p class="lede">58 errors and surprises, each with the exact message, what it means, how to confirm the cause, the fix and how to prevent it. The <a href="./#doctor">interactive version</a> also searches pasted error text and opens each fix in a practice scenario.</p>
     <nav aria-label="Problems">
       <h2>Init, providers and versions</h2>
       <ul>
@@ -30,6 +30,7 @@
         <li><a href="#module-not-installed">Module not installed</a></li>
         <li><a href="#module-version">Module version requirements have changed</a></li>
         <li><a href="#credentials">No valid credential sources found</a></li>
+        <li><a href="#deprecated-argument">Warning: Argument is deprecated</a></li>
       </ul>
       <h2>Configuration errors</h2>
       <ul>
@@ -45,6 +46,7 @@
         <li><a href="#invalid-for-each">Invalid for_each argument</a></li>
         <li><a href="#invalid-count">Invalid count argument</a></li>
         <li><a href="#provider-not-present">Provider configuration not present</a></li>
+        <li><a href="#test-assertion">Test assertion failed (terraform test)</a></li>
       </ul>
       <h2>Variables and outputs</h2>
       <ul>
@@ -64,6 +66,8 @@
         <li><a href="#import-missing">Cannot import non-existent remote object</a></li>
         <li><a href="#already-managed">Resource already managed by Terraform</a></li>
         <li><a href="#workspace-missing">Workspace doesn't exist</a></li>
+        <li><a href="#empty-state">Plan wants to create everything that already exists</a></li>
+        <li><a href="#state-push-serial">cannot import state with serial … over newer state</a></li>
       </ul>
       <h2>Plans that surprise you</h2>
       <ul>
@@ -74,6 +78,8 @@
         <li><a href="#renamed-resource">Renamed resource plans destroy and create</a></li>
         <li><a href="#known-after-apply">Data source read during apply causes replacement</a></li>
         <li><a href="#targeting">Resource targeting is in effect</a></li>
+        <li><a href="#tainted">Plan says the resource is tainted, so must be replaced</a></li>
+        <li><a href="#perpetual-diff">The plan always shows the same change</a></li>
       </ul>
       <h2>AWS errors during apply</h2>
       <ul>
@@ -85,6 +91,9 @@
         <li><a href="#acl-not-supported">AccessControlListNotSupported</a></li>
         <li><a href="#viewer-certificate">InvalidViewerCertificate (CloudFront)</a></li>
         <li><a href="#data-not-found">no matching EC2 VPC found</a></li>
+        <li><a href="#throttling">RequestLimitExceeded or Rate exceeded during apply</a></li>
+        <li><a href="#create-timeout">timeout while waiting for state to become 'available'</a></li>
+        <li><a href="#duplicate-permission">InvalidPermission.Duplicate</a></li>
       </ul>
     </nav>
     <section class="card problem" id="inconsistent-lock">
@@ -261,7 +270,7 @@ cat .terraform/modules/&lt;name&gt;/variables.tf</code></pre>
       <ol><li>Fix the name; for modules, pin the version the code was written for</li></ol>
       <h3>Prevent it</h3>
       <ul><li>terraform validate in CI and in your editor</li></ul>
-      <p>Practise it: <a href="./#play/unsupported">Unsupported argument</a>, <a href="./#play/modpin">Unpinned module upgraded itself</a> · <a href="./#fix/unsupported-argument">Open interactive</a></p>
+      <p>Practise it: <a href="./#play/unsupported">Unsupported argument</a>, <a href="./#play/modpin">Unpinned module upgraded itself</a>, <a href="./#play/awsv5upgrade">AWS provider major upgrade</a> · <a href="./#fix/unsupported-argument">Open interactive</a></p>
     </section>
     <section class="card problem" id="unsupported-block">
       <h2>Unsupported block type</h2>
@@ -894,6 +903,157 @@ terraform state list</code></pre>
       <h3>Prevent it</h3>
       <ul><li>Tag consistently from code</li></ul>
       <p>Practise it: <a href="./#play/datanotfound">Data source not found</a> · <a href="./#fix/data-not-found">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="throttling">
+      <h2>RequestLimitExceeded or Rate exceeded during apply</h2>
+      <pre class="err"><code>Error: creating EC2 Instance: operation error EC2: RunInstances, exceeded maximum number of attempts, 1, https response error StatusCode: 503, RequestID: ..., api error RequestLimitExceeded: Request limit exceeded.</code></pre>
+      <p>AWS throttled the API calls and the provider gave up retrying. Part of the apply succeeded; the rest is still to do.</p>
+      <h3>Likely causes</h3>
+      <ul><li>max_retries set very low in the provider block</li><li>A large apply at the default -parallelism=10</li><li>Other tools using the same account's API quota</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>grep -n max_retries *.tf
+terraform state list | wc -l</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Remove max_retries (default retries with backoff) or raise it</li><li>terraform apply -parallelism=3 for very large changes</li><li>Run apply again: completed resources are in state</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Keep provider retries at their default</li><li>Split very large states</li><li>Spread scheduled pipelines over time</li></ul>
+      <p>Practise it: <a href="./#play/throttling">API rate limit during apply</a> · <a href="./#fix/throttling">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="create-timeout">
+      <h2>timeout while waiting for state to become 'available'</h2>
+      <pre class="err"><code>Error: waiting for RDS DB Instance (warehouse-db) create: timeout while waiting for state to become 'available' (last state: 'creating', timeout: 40m0s)</code></pre>
+      <p>The API accepted the create, but the object was not ready within the provider's wait time. Terraform records it as tainted.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Restores from large snapshots</li><li>Big instances, Multi-AZ, encryption on large volumes</li><li>A slow region or a service incident</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>aws rds describe-db-instances   # is it available now?
+terraform state show &lt;addr&gt;   # tainted?</code></pre>
+      <h3>Fix</h3>
+      <ol><li>If the object is healthy: terraform untaint &lt;addr&gt;</li><li>Add a timeouts { create = &quot;120m&quot; } block for next time</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Set timeouts on slow resources</li><li>Read plans after a failed apply before applying again</li></ul>
+      <p>Practise it: <a href="./#play/timeouts">Timeout leaves a tainted database</a> · <a href="./#fix/create-timeout">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="tainted">
+      <h2>Plan says the resource is tainted, so must be replaced</h2>
+      <pre class="err"><code>  # aws_db_instance.warehouse is tainted, so must be replaced
+-/+ resource &quot;aws_db_instance&quot; &quot;warehouse&quot; {</code></pre>
+      <p>State marks the object as not fully created (a failed or timed-out create, a failed provisioner, or terraform taint), so the next apply replaces it.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Create timed out</li><li>Provisioner failed</li><li>Someone ran terraform taint</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform state show &lt;addr&gt;
+Check the real object in the console or CLI</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Healthy object: terraform untaint &lt;addr&gt;</li><li>Broken object: let the replacement happen, ideally with -replace for clarity</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Timeouts that fit the resource</li><li>Avoid provisioners</li></ul>
+      <p>Practise it: <a href="./#play/timeouts">Timeout leaves a tainted database</a>, <a href="./#play/taint">Replace a broken instance</a> · <a href="./#fix/tainted">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="empty-state">
+      <h2>Plan wants to create everything that already exists</h2>
+      <pre class="err"><code>Plan: 2 to add, 0 to change, 0 to destroy.
+(every resource shows &quot;will be created&quot;, but they all exist)</code></pre>
+      <p>Terraform is reading an empty or different state: wrong backend, bucket, key or workspace, or the state was overwritten.</p>
+      <h3>Likely causes</h3>
+      <ul><li>state push -force of an empty file</li><li>Wrong backend key or workspace</li><li>init -reconfigure instead of -migrate-state</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform workspace show
+terraform state list
+aws s3api list-object-versions --bucket &lt;bucket&gt; --prefix &lt;key&gt;</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Point at the right backend or workspace</li><li>Restore the last good version: aws s3api get-object ... --version-id &lt;id&gt; recovered.tfstate, then terraform state push -force recovered.tfstate</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Versioning on the state bucket</li><li>Never apply a plan that creates things you know exist</li></ul>
+      <p>Practise it: <a href="./#play/staterecover">Restore an overwritten state</a>, <a href="./#play/backendmigrate">Move state to an S3 backend</a>, <a href="./#play/backendbucket">Backend bucket does not exist</a> · <a href="./#fix/empty-state">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="state-push-serial">
+      <h2>cannot import state with serial … over newer state</h2>
+      <pre class="err"><code>Failed to write state: cannot import state with serial 2 over newer state with serial 3</code></pre>
+      <p>terraform state push refuses to replace a newer state (higher serial) or one with a different lineage.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Restoring an older version</li><li>Pushing a state from another configuration</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform state pull | grep -E 'serial|lineage'
+grep -E 'serial|lineage' &lt;file&gt;</code></pre>
+      <h3>Fix</h3>
+      <ol><li>If you are restoring on purpose and have checked the file: terraform state push -force &lt;file&gt;</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Use state push only for recovery, with a backup of the current state</li></ul>
+      <p>Practise it: <a href="./#play/staterecover">Restore an overwritten state</a> · <a href="./#fix/state-push-serial">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="deprecated-argument">
+      <h2>Warning: Argument is deprecated</h2>
+      <pre class="err"><code>Warning: Argument is deprecated
+
+  with aws_s3_bucket.reports,
+  on main.tf line 3, in resource &quot;aws_s3_bucket&quot; &quot;reports&quot;:
+   3:   acl    = &quot;private&quot;
+
+Use the aws_s3_bucket_acl resource instead</code></pre>
+      <p>The argument still works but will be removed in a future major version of the provider.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Code written for an older provider (S3 inline acl, versioning, lifecycle_rule)</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform validate
+Read the provider's upgrade guide</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Move to the replacement resource or argument, checking the plan shows no replacement</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Fix deprecations before each provider major upgrade</li></ul>
+      <p>Practise it: <a href="./#play/awsv5upgrade">AWS provider major upgrade</a> · <a href="./#fix/deprecated-argument">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="test-assertion">
+      <h2>Test assertion failed (terraform test)</h2>
+      <pre class="err"><code>Error: Test assertion failed
+
+  on tests/naming.tftest.hcl line 10, in run &quot;bucket_name_has_environment&quot;:
+  10:     condition     = aws_s3_bucket.logs.bucket == &quot;quest-logs-dev&quot;
+
+The logs bucket name must end with the environment.</code></pre>
+      <p>A run block's assert condition was false for the planned (or applied) values.</p>
+      <h3>Likely causes</h3>
+      <ul><li>A code change broke a convention the test encodes</li><li>The test's variables no longer match the module</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform test -verbose
+terraform console   # evaluate the expression</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Fix the code; change the test only when the rule itself changed, in a reviewed change</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Run terraform test in CI on every pull request</li></ul>
+      <p>Practise it: <a href="./#play/tftest">terraform test fails</a> · <a href="./#fix/test-assertion">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="perpetual-diff">
+      <h2>The plan always shows the same change</h2>
+      <pre class="err"><code>  # aws_security_group.db will be updated in-place
+  ~ resource &quot;aws_security_group&quot; &quot;db&quot; {
+      - ingress {
+          - from_port   = 9187 -&gt; null</code></pre>
+      <p>Two owners manage the same thing, or a value never matches what the provider reads back, so every apply undoes the other.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Inline security group rules mixed with aws_vpc_security_group_*_rule resources</li><li>An autoscaler or other tool owning an attribute</li><li>depends_on deferring data sources</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform plan twice, with an apply between
+grep -rn 'security_group_id' *.tf</code></pre>
+      <h3>Fix</h3>
+      <ol><li>One owner per thing: all inline or all separate rules; ignore_changes for attributes another system manages</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Agree on one style per resource type across teams</li></ul>
+      <p>Practise it: <a href="./#play/perpetualdiff">A plan that never settles</a>, <a href="./#play/ignorechanges">Every apply resets the autoscaler</a>, <a href="./#play/dependson">depends_on replaces the app server</a> · <a href="./#fix/perpetual-diff">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="duplicate-permission">
+      <h2>InvalidPermission.Duplicate</h2>
+      <pre class="err"><code>Error: creating VPC Security Group Ingress Rule: InvalidPermission.Duplicate: the specified rule &quot;peer: 10.0.1.0/24, TCP, from port: 5432, to port: 5432, ALLOW&quot; already exists</code></pre>
+      <p>The rule already exists on the group, often as an inline rule or one added by hand.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Moving inline rules to separate resources without importing them</li><li>A rule created in the console</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>aws ec2 describe-security-group-rules --filters Name=group-id,Values=&lt;sg&gt;</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Import the existing rule by its sgr- ID, or remove the duplicate first</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Do not mix inline and standalone rules</li></ul>
+      <p>Practise it: <a href="./#play/perpetualdiff">A plan that never settles</a> · <a href="./#fix/duplicate-permission">Open interactive</a></p>
     </section>
   </main>
   <footer class="foot">

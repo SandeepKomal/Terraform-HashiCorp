@@ -305,7 +305,7 @@ select:focus, input[type="search"]:focus { border-color: var(--accent); outline:
 #doctor-out h4 { margin: 20px 0 8px; font-size: .9rem; color: var(--muted); font-weight: 600; letter-spacing: -.01em; }
 #doctor-out ul { margin: 0; padding-left: 20px; }
 #doctor-out .card { min-width: 0; }
-#doctor-out pre { max-width: 100%; white-space: pre; }
+#doctor-out pre { max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
 .doctor-practise { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 16px; }
 .doctor-practise > span { margin-right: 4px; }
 

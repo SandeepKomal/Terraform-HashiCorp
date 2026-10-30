@@ -71,7 +71,11 @@
   // s sensitive. Blocks list their own arguments the same way.
   const spec = (s) => Object.fromEntries(s.trim().split(/\s+/).map((x) => { const [n, f = ""] = x.split(":"); return [n, f]; }));
   const RESOURCES = {
-    aws_s3_bucket: { args: spec("bucket:nc bucket_prefix:n force_destroy tags"), prefix: null, computed: ["arn", "bucket_domain_name", "region"], data: true },
+    aws_s3_bucket: {
+      args: spec("bucket:nc bucket_prefix:n force_destroy acl:c tags"), blocks: { versioning: spec("enabled mfa_delete") }, cblocks: ["versioning"],
+      prefix: null, computed: ["arn", "bucket_domain_name", "region"], data: true,
+      deprecated: { acl: "Use the aws_s3_bucket_acl resource instead", versioning: "Use the aws_s3_bucket_versioning resource instead" }
+    },
     aws_s3_bucket_acl: { args: spec("bucket:rn acl expected_bucket_owner:n"), prefix: null },
     aws_s3_bucket_ownership_controls: { args: spec("bucket:rn"), blocks: { rule: spec("object_ownership:r") }, prefix: null },
     aws_s3_bucket_public_access_block: { args: spec("bucket:rn block_public_acls block_public_policy ignore_public_acls restrict_public_buckets"), prefix: null },
@@ -79,11 +83,14 @@
     aws_s3_bucket_versioning: { args: spec("bucket:rn"), blocks: { versioning_configuration: spec("status:r") }, prefix: null },
     aws_instance: { args: spec("ami:rn instance_type:c subnet_id:nc vpc_security_group_ids:c iam_instance_profile user_data:n key_name:n associate_public_ip_address:nc tags"), prefix: "i-", computed: ["arn", "private_ip", "public_ip", "instance_state"] },
     aws_db_instance: {
-      args: spec("identifier:nc engine:rn engine_version:c instance_class:r allocated_storage:c username:nc password:s manage_master_user_password db_name:nc storage_encrypted:nc skip_final_snapshot final_snapshot_identifier deletion_protection publicly_accessible multi_az backup_retention_period:c vpc_security_group_ids:c tags"),
+      args: spec("identifier:nc engine:rn engine_version:c instance_class:r allocated_storage:c username:nc password:s manage_master_user_password db_name:nc name:nc snapshot_identifier:n storage_encrypted:nc skip_final_snapshot final_snapshot_identifier deletion_protection publicly_accessible multi_az backup_retention_period:c vpc_security_group_ids:c tags"),
+      blocks: { timeouts: spec("create update delete") },
+      // Provider 5.0 removed name; its state upgrade moves the value to db_name.
+      removed: { name: ["5.0.0", "db_name"] },
       prefix: "db-", computed: ["arn", "address", "endpoint", "master_user_secret"], data: true
     },
     aws_security_group: {
-      args: spec("name:nc name_prefix:n description:n vpc_id:nc tags"), prefix: "sg-", computed: ["arn", "owner_id"],
+      args: spec("name:nc name_prefix:n description:n vpc_id:nc tags"), prefix: "sg-", computed: ["arn", "owner_id"], cblocks: ["ingress", "egress"],
       blocks: { ingress: spec("from_port:r to_port:r protocol:r cidr_blocks security_groups description"), egress: spec("from_port:r to_port:r protocol:r cidr_blocks security_groups description") }
     },
     aws_vpc_security_group_ingress_rule: { args: spec("security_group_id:rn ip_protocol:r from_port to_port cidr_ipv4 referenced_security_group_id description tags"), prefix: "sgr-", computed: ["arn"] },
@@ -188,6 +195,7 @@
       this.clock = 0;
       this.mirror = Boolean(scenario.mirror);
       this.memo = {};
+      this.versions = {};
       if (base) return;
       for (const o of scenario.cloud || []) this.cloudPut(o.type, o.id, o.attrs, o.extra);
       if (scenario.setup) scenario.setup(this);
@@ -211,7 +219,17 @@
       if (!all[this.ws]) all[this.ws] = emptyState(this);
       return all[this.ws];
     }
-    set state(st) { this.states()[this.ws] = st; }
+    set state(st) {
+      this.states()[this.ws] = st;
+      // The S3 bucket keeps every version of the state object.
+      const key = this.storeKey();
+      if (key.startsWith("s3://")) {
+        const list = (this.versions[key + "#" + this.ws] = this.versions[key + "#" + this.ws] || []);
+        this.clock++;
+        list.unshift({ id: this.hex(32), serial: st.serial, at: `2026-10-${String(20 + Math.min(this.clock, 9)).padStart(2, "0")}T0${this.clock % 10}:12:44.000Z`, json: stateJSON(this, st) });
+      }
+    }
+    commit() { this.state = this.state; }
     hasState() { const st = this.states()[this.ws]; return Boolean(st && (Object.keys(st.resources).length || Object.keys(st.outputs).length)); }
 
     // The files git would commit: everything except what .gitignore lists.
@@ -400,7 +418,7 @@
   const schemaOf = (r) => (r.mode === "data" ? DATA_SOURCES : RESOURCES)[r.type];
   const exported = (S) => new Set(["id", ...Object.keys(S.args), ...Object.keys(S.blocks || {}), ...(S.computed || []), ...(S === DATA_SOURCES.aws_iam_policy_document ? ["json"] : []), ...(S === DATA_SOURCES.aws_vpc ? ["cidr_block", "arn"] : []), ...(S === DATA_SOURCES.aws_caller_identity ? ["account_id", "arn"] : []), ...(S === DATA_SOURCES.aws_region ? ["name"] : []), ...(S === DATA_SOURCES.aws_availability_zones ? ["names"] : []), ...(S === DATA_SOURCES.aws_subnets ? ["ids"] : [])]);
 
-  function validateResource(r, diags) {
+  function validateResource(r, diags, version) {
     const S = schemaOf(r);
     const b = r.block;
     if (!S) {
@@ -434,7 +452,15 @@
         check(sub.attrs, sub.blocks, inner, true, { ...at, line: sub.line });
       }
     };
-    check(b.attrs, b.blocks, S.args, false, r.at);
+    const gone = Object.keys((S && S.removed) || {}).filter((n) => version && vcmp(version, S.removed[n][0]) >= 0);
+    const args = Object.fromEntries(Object.entries(S.args).filter(([n]) => !gone.includes(n)));
+    check(b.attrs, b.blocks, args, false, r.at);
+    if (S.deprecated && version && vcmp(version, "4.0.0") >= 0) {
+      for (const [n, msg] of Object.entries(S.deprecated)) {
+        const line = b.attrs[n] ? b.attrs[n].line : (b.blocks.find((x) => x.type === n) || {}).line;
+        if (line) diags.push(diag("Argument is deprecated", msg, { ...r.at, line, with: r.id }, "Warning"));
+      }
+    }
   }
 
   // Expressions a node reads, and the addresses its depends_on names.
@@ -605,7 +631,7 @@
     const diags = [...cfg.diags];
     if (diags.length) return { diags };
     for (const mod of Object.values(cfg.mods)) {
-      for (const r of [...mod.res, ...mod.data]) validateResource(r, diags);
+      for (const r of [...mod.res, ...mod.data]) validateResource(r, diags, w.dot && w.dot.providers[providerOf(r.type)]);
       for (const call of mod.calls) {
         const child = call.child && cfg.mods[call.child];
         if (!child) continue;
@@ -634,7 +660,7 @@
         if (!ok) diags.push(diag("Provider configuration not present", `To work with ${r.id} its original provider configuration at provider["${REG(pn)}"].${alias} is required, but it has been removed. This occurs when a provider configuration is removed while objects created by that provider still exist in the state. Re-add the provider configuration to destroy ${r.id}, after which you can remove the provider configuration again.`, { ...r.at, line: pa.line }));
       }
     }
-    if (diags.length) return { diags };
+    if (diags.some((d) => d.sev === "Error")) return { diags };
     const graph = buildGraph(cfg, diags);
     for (const n of graph.nodes.values()) checkRefs(cfg, n, diags);
     return { diags, graph };
@@ -711,6 +737,7 @@
       }
     };
     for (const f of files) if (f in w.fs) fromFile(f, readTfvars(w, f, diags));
+    for (const [k, v] of Object.entries(opts.values || {})) if (decl[k]) got[k] = v;
     for (const v of opts.vars || []) {
       if (v.file) fromFile(v.file, readTfvars(w, v.file, diags));
       else if (!decl[v.name]) diags.push(diag("Value for undeclared variable", `A variable named "${v.name}" was assigned on the command line, but the root module does not declare a variable of that name. To use this value, add a "variable" block to the configuration.`));
@@ -764,6 +791,14 @@
     if (type === "aws_security_group" && args.name && w.cloudAll(type).some((o) => o.attrs.name === args.name && o.attrs.vpc_id === args.vpc_id)) {
       API.fail("creating", `Security Group (${args.name})`, "InvalidGroup.Duplicate", `The security group '${args.name}' already exists for VPC '${args.vpc_id}'`);
     }
+    if (/^aws_vpc_security_group_(ingress|egress)_rule$/.test(type)) {
+      const sg = w.cloudGet("aws_security_group", args.security_group_id);
+      const dir = type.includes("ingress") ? "ingress" : "egress";
+      const mine = ruleOf({ attrs: args });
+      if (sg && readAttrs(w, sg)[dir].some((x) => JSON.stringify(norm(x)) === JSON.stringify(norm(mine)))) {
+        API.fail("creating", `VPC Security Group ${dir === "ingress" ? "Ingress" : "Egress"} Rule`, "InvalidPermission.Duplicate", `the specified rule "peer: ${args.cidr_ipv4 || args.referenced_security_group_id}, ${String(args.ip_protocol).toUpperCase()}, from port: ${args.from_port}, to port: ${args.to_port}, ALLOW" already exists`);
+      }
+    }
     if (type === "aws_cloudfront_distribution") {
       const arn = args.viewer_certificate && args.viewer_certificate[0] && args.viewer_certificate[0].acm_certificate_arn;
       if (arn && !arn.includes(":us-east-1:")) API.fail("creating", "CloudFront Distribution", "InvalidViewerCertificate", "The specified SSL certificate doesn't exist, isn't in us-east-1 region, isn't valid, or doesn't include a valid certificate chain.");
@@ -792,7 +827,33 @@
       random_password: { result: `pw-${w.hex(14)}` }
     }[type] || {};
     w.cloudPut(type, id, { ...attrs, ...comp }, { region, objects: type === "aws_s3_bucket" ? 0 : undefined });
+    // A large restore takes longer than the provider's default 40 minute wait.
+    if (type === "aws_db_instance" && w.scenario.slowDb) {
+      const t = String(((args.timeouts || [])[0] || {}).create || "40m");
+      const mins = Number((/(\d+)h/.exec(t) || [0, 0])[1]) * 60 + Number((/(\d+)m/.exec(t) || [0, 0])[1]);
+      if (mins < 60) {
+        const e = new Error(`waiting for RDS DB Instance (${args.identifier}) create: timeout while waiting for state to become 'available' (last state: 'creating', timeout: ${t.replace(/^(\d+)m$/, "$1m0s")})`);
+        e.plain = true;
+        e.partial = w.cloudGet(type, id);
+        throw e;
+      }
+    }
     return w.cloudGet(type, id);
+  }
+
+  // A standalone rule as the security group's own ingress/egress list shows it.
+  const ruleOf = (r) => ({ from_port: r.attrs.from_port, to_port: r.attrs.to_port, protocol: r.attrs.ip_protocol, ...(r.attrs.cidr_ipv4 ? { cidr_blocks: [r.attrs.cidr_ipv4] } : {}), ...(r.attrs.referenced_security_group_id ? { security_groups: [r.attrs.referenced_security_group_id] } : {}), ...(r.attrs.description ? { description: r.attrs.description } : {}) });
+  // What the provider reads back for an object: a security group lists every
+  // rule it has, wherever the rule was defined.
+  function readAttrs(w, o) {
+    if (o.type !== "aws_security_group") return clone(o.attrs);
+    const a = clone(o.attrs);
+    for (const dir of ["ingress", "egress"]) {
+      const extra = w.cloudAll(`aws_vpc_security_group_${dir}_rule`).filter((r) => r.attrs.security_group_id === o.id).map(ruleOf);
+      const have = (a[dir] || []).map((x) => JSON.stringify(norm(x)));
+      a[dir] = [...(a[dir] || []), ...extra.filter((x) => !have.includes(JSON.stringify(norm(x))))];
+    }
+    return a;
   }
 
   function cloudDelete(w, type, id) {
@@ -817,7 +878,24 @@
     const o = w.cloudGet(type, id);
     const S = RESOURCES[type];
     for (const [n, f] of Object.entries(S.args)) if (!(n in args) && !f.includes("c")) delete o.attrs[n];
-    for (const n of Object.keys(S.blocks || {})) if (!(n in args)) o.attrs[n] = [];
+    for (const n of Object.keys(S.blocks || {})) if (!(n in args) && !(S.cblocks || []).includes(n)) o.attrs[n] = [];
+    // Inline rules describe the group's whole list: the provider revokes every
+    // permission they do not name, including ones a standalone rule resource
+    // added, and authorizes only what is missing.
+    if (type === "aws_security_group") {
+      for (const dir of ["ingress", "egress"]) {
+        if (!(dir in args)) continue;
+        const key = (x) => JSON.stringify(norm(x));
+        const want = args[dir].map(key);
+        const owned = [];
+        for (const r of w.cloudAll(`aws_vpc_security_group_${dir}_rule`)) {
+          if (r.attrs.security_group_id !== id) continue;
+          if (want.includes(key(ruleOf(r)))) owned.push(key(ruleOf(r)));
+          else delete w.cloud[`${r.type}/${r.id}`];
+        }
+        args[dir] = args[dir].filter((x) => !owned.includes(key(x)));
+      }
+    }
     Object.assign(o.attrs, args);
     if (type === "aws_db_instance" && args.manage_master_user_password && !(o.attrs.master_user_secret || []).length) o.attrs.master_user_secret = [{ secret_arn: `arn:aws:secretsmanager:${REGION}:${ACCOUNT}:secret:rds!db-${w.hex(8)}` }];
     if (type === "aws_s3_bucket_acl") cloudCreate(w, type, o.attrs);
@@ -892,7 +970,8 @@
   function changedArgs(S, after, before, ign) {
     if (ign === "all") return [];
     const names = new Set([...Object.keys(after), ...Object.keys(S.args).filter((n) => !S.args[n].includes("c")), ...Object.keys(S.blocks || {})]);
-    return [...names].filter((n) => (S.args[n] !== undefined || (S.blocks || {})[n]) && !ign.has(n) && !same(n in after ? after[n] : null, before[n] ?? null, n)).sort();
+    const unmanaged = (n) => n === "timeouts" || ((S.cblocks || []).includes(n) && after[n] === undefined);
+    return [...names].filter((n) => (S.args[n] !== undefined || (S.blocks || {})[n]) && !ign.has(n) && !unmanaged(n) && !same(n in after ? after[n] : null, before[n] ?? null, n)).sort();
   }
 
   // The full planned value of an instance, for references from elsewhere.
@@ -904,7 +983,7 @@
     if (base && !fresh) {
       Object.assign(v, base);
       for (const [n, f] of Object.entries(S.args)) if (!f.includes("c") && after[n] === undefined) v[n] = null;
-      for (const n of Object.keys(S.blocks || {})) if (after[n] === undefined) v[n] = [];
+      for (const n of Object.keys(S.blocks || {})) if (after[n] === undefined && !(S.cblocks || []).includes(n)) v[n] = [];
     } else {
       v.id = UNKNOWN;
       for (const c of S.computed || []) v[c] = UNKNOWN;
@@ -931,6 +1010,9 @@
   function makePlan(w, cfg, graph, opts) {
     const diags = [];
     const p = { diags, changes: [], drift: [], moves: [], outputs: {}, refreshers: [], mode: opts.mode || "normal", targets: opts.targets || [] };
+    const prov = cfg.root.providers.find((x) => x.name === "aws" && !x.block.attrs.alias);
+    p.parallelism = Number(opts.parallelism) || 10;
+    p.maxRetries = prov && prov.block.attrs.max_retries ? Number(constant(prov.block.attrs.max_retries.expr, prov.at, [])) : 25;
     const prior = clone(w.state);
     p.prior = prior;
     // moved blocks, then refresh.
@@ -948,13 +1030,21 @@
         }
       }
     }
+    // Provider 5's schema upgrade: aws_db_instance.name becomes db_name.
+    const awsVersion = w.dot && w.dot.providers.aws;
+    if (awsVersion && vcmp(awsVersion, "5.0.0") >= 0) {
+      const up = (a) => { if (a && a.name !== undefined && a.identifier !== undefined) { if (a.db_name == null) a.db_name = a.name; delete a.name; } };
+      for (const r of Object.values(prior.resources)) if (r.type === "aws_db_instance") up(r.attrs);
+      for (const o of w.cloudAll("aws_db_instance")) up(o.attrs);
+    }
     if (opts.refresh !== false && !opts.validateOnly) {
       for (const [addr, r] of Object.entries(prior.resources)) {
         if (r.mode !== "managed") continue;
         const node = graph.nodes.get(addr.replace(/\[[^\]]*\]$/, ""));
         const o = w.cloudGet(r.type, r.id);
         if (!o || (o.extra.region && node && o.extra.region !== regionOf(cfg, node.item))) { p.drift.push({ addr, before: r.attrs, after: null, r }); delete prior.resources[addr]; continue; }
-        if (!same(o.attrs, r.attrs)) { p.drift.push({ addr, before: r.attrs, after: clone(o.attrs), r }); r.attrs = clone(o.attrs); }
+        const now = readAttrs(w, o);
+        if (!same(now, r.attrs)) { p.drift.push({ addr, before: r.attrs, after: now, r }); r.attrs = now; }
       }
     }
     const vars = rootVars(w, cfg, opts, diags);
@@ -1382,7 +1472,7 @@
     const st = p.prior;
     const done = { imported: 0, added: 0, changed: 0, destroyed: 0 };
     const record = (c, obj) => {
-      st.resources[c.addr] = { addr: c.addr, mode: "managed", type: c.r.type, name: c.r.name, mp: c.mp, key: c.key, id: obj.id, attrs: clone(obj.attrs) };
+      st.resources[c.addr] = { addr: c.addr, mode: "managed", type: c.r.type, name: c.r.name, mp: c.mp, key: c.key, id: obj.id, attrs: readAttrs(w, obj) };
       if (c.slot) c.slot({ ...plannedValue(c.r, {}, obj.attrs, false), ...obj.attrs });
     };
     const destroy = (c, id, deposed) => {
@@ -1392,9 +1482,26 @@
       say(`${label}: Destruction complete after ${took(c.r.type)}`);
       done.destroyed++;
     };
+    const creates = p.changes.filter((c) => c.action === "create" || c.action === "replace").length;
+    let made = 0;
     const create = (c, args) => {
       say(`${c.addr}: Creating...`);
-      const obj = cloudCreate(w, c.r.type, args, c.region);
+      // A burst of calls with few retries meets the account's API rate limit.
+      if (w.scenario.throttle && p.parallelism > 3 && p.maxRetries < 3 && creates > 3 && made >= 1) {
+        const e = new Error("throttled");
+        Object.assign(e, { op: "creating", what: "EC2 Instance", short: `operation error EC2: RunInstances, exceeded maximum number of attempts, ${Math.max(1, p.maxRetries)}, https response error StatusCode: 503, RequestID: ${API.reqId()}, api error RequestLimitExceeded: Request limit exceeded.` });
+        throw e;
+      }
+      let obj;
+      try { obj = cloudCreate(w, c.r.type, args, c.region); } catch (e) {
+        if (e.partial) {
+          say(`${c.addr}: Still creating... [39m50s elapsed]`);
+          record(c, e.partial);
+          st.resources[c.addr].tainted = true;
+        }
+        throw e;
+      }
+      made++;
       record(c, obj);
       say(`${c.addr}: Creation complete after ${took(c.r.type)} [id=${obj.id}]`);
       done.added++;
@@ -1724,8 +1831,8 @@
     const flags = new Map();
     const pos = [];
     const vars = [];
-    const multi = { target: [], replace: [], platform: [] };
-    const takes = new Set(["var", "var-file", "target", "replace", "out", "state", "lock-timeout", "chdir", "platform", "backend-config"]);
+    const multi = { target: [], replace: [], platform: [], filter: [] };
+    const takes = new Set(["var", "var-file", "target", "replace", "out", "state", "lock-timeout", "chdir", "platform", "backend-config", "filter", "parallelism"]);
     for (let i = 0; i < words.length; i++) {
       const m = /^--?([\w-]+)(?:=([\s\S]*))?$/.exec(words[i]);
       if (!m || words[i] === "-") { pos.push(words[i]); continue; }
@@ -1804,6 +1911,7 @@
       if (sub === "untaint" && !r.tainted) return fail(diag("Resource instance is not tainted", `Resource instance ${addr} is not currently tainted, and so it cannot be untainted.`));
       r.tainted = sub === "taint";
       w.state.serial++;
+      w.commit();
       say(sub === "taint" ? `Resource instance ${addr} has been marked as tainted.` : `Resource instance ${addr} has been successfully untainted.`);
       return out;
     }
@@ -1830,6 +1938,7 @@
       const key = /\[(.+)\]$/.exec(addr);
       w.state.resources[addr] = { addr, mode: "managed", type: node.item.type, name: node.item.name, mp: "", key: key ? JSON.parse(key[1]) : undefined, id, attrs: clone(o.attrs) };
       w.state.serial++;
+      w.commit();
       for (const t of ["", "Import successful!", "", "The resources that were imported are shown above. These resources are now in", "your Terraform state and will henceforth be managed by Terraform."]) say(t, t === "Import successful!" ? "ok" : null);
       return out;
     }
@@ -1865,7 +1974,8 @@
       return out;
     }
     if (["plan", "apply", "destroy", "refresh"].includes(sub)) return operation(w, sub, a, say, fail, out, words);
-    if (sub === "login" || sub === "logout" || sub === "test" || sub === "get" || sub === "metadata" || sub === "modules") return [[`terraform ${sub} needs a real Terraform installation; the playground does not model it.`, "na"]];
+    if (sub === "test") return testCmd(w, a, say, fail, out);
+    if (sub === "login" || sub === "logout" || sub === "get" || sub === "metadata" || sub === "modules") return [[`terraform ${sub} needs a real Terraform installation; the playground does not model it.`, "na"]];
     return fail(diag(`Terraform has no command named "${sub}".`, `To see all of Terraform's top-level commands, run:\n  terraform -help`));
   }
 
@@ -1898,8 +2008,8 @@
     const le = holdsLock(w) && !a.has("-lock=false") && lockError(w);
     announceLock();
     if (le) return fail(le);
-    const p = makePlan(w, pr.cfg, pr.graph, { mode, targets: a.multi.target, replace: a.multi.replace, refresh: !a.has("-refresh=false"), vars: a.vars });
-    if (p.missing.length) {
+    const p = makePlan(w, pr.cfg, pr.graph, { mode, targets: a.multi.target, replace: a.multi.replace, refresh: !a.has("-refresh=false"), vars: a.vars, parallelism: a.get("parallelism") });
+    if (p.missing.length && !p.diags.some((d) => d.sev === "Error")) {
       const v = p.missing[0];
       if (a.has("-input=false") || w.ci) {
         return fail(...p.missing.map((m) => diag("No value for required variable", `The root module input variable "${m.name}" is not set, and has no default value. Use a -var or -var-file command line argument to provide a value for this variable.`, m.at)));
@@ -1918,6 +2028,7 @@
     const acts = p.changes.filter((c) => c.action !== "noop");
     const outs = Object.values(p.outputs).filter((o) => o.action !== "noop");
     out.push(...renderPlan(w, p));
+    for (const d of pr.diags.filter((x) => x.sev !== "Error")) out.push(["", null], ...renderDiag(w, d));
     const nothing = mode === "refresh" ? !p.drift.length : !acts.length && !outs.length && !p.moves.length;
     w.lastPlan = { ws: w.ws, mode, counts: counts(p), changes: acts.map((c) => ({ addr: c.addr, action: c.action })), nothing, targets: p.targets.length > 0, locked: holdsLock(w) && !a.has("-lock=false"), cli: w.cli, vars: p.V && p.V[""] ? strip(p.V[""].var) : {} };
     if (sub === "plan") {
@@ -2049,6 +2160,18 @@
       resources: Object.values(groups), check_results: null }, null, 2);
   }
 
+  function stateFromJSON(json) {
+    const st = { version: 4, tfv: json.terraform_version, serial: json.serial, lineage: json.lineage, resources: {}, outputs: {} };
+    for (const [k, o] of Object.entries(json.outputs || {})) st.outputs[k] = { value: o.value, sensitive: Boolean(o.sensitive) };
+    for (const g of json.resources || []) {
+      for (const inst of g.instances || []) {
+        const addr = keyed(`${g.module ? g.module + "." : ""}${g.mode === "data" ? "data." : ""}${g.type}.${g.name}`, inst.index_key);
+        st.resources[addr] = { addr, mode: g.mode, type: g.type, name: g.name, mp: g.module || "", key: inst.index_key, id: inst.attributes.id, attrs: inst.attributes, ...(inst.status === "tainted" ? { tainted: true } : {}) };
+      }
+    }
+    return st;
+  }
+
   function stateCmd(w, a, say, fail, out) {
     const [cmd, x, y] = a.pos;
     const pr = prepare(w, "state");
@@ -2084,6 +2207,7 @@
         say(`Move "${f}" to "${t}"`);
       }
       st.serial++;
+      w.commit();
       say(`Successfully moved ${moves.length} object(s).`, "ok");
       return out;
     }
@@ -2094,10 +2218,25 @@
       if (a.has("-dry-run")) { for (const r of hits) say(`Would remove ${r}`); return out; }
       for (const r of hits) { delete st.resources[r]; say(`Removed ${r}`); }
       st.serial++;
+      w.commit();
       say(`Successfully removed ${hits.length} resource instance(s).`, "ok");
       return out;
     }
-    if (cmd === "push" || cmd === "replace-provider" || cmd === "identities") return [[`terraform state ${cmd} rewrites state by hand; the playground leaves it out on purpose. Use state mv, state rm, import, moved and removed blocks.`, "na"]];
+    if (cmd === "push") {
+      const file = a.pos[1];
+      if (!file || !(file in w.fs)) return fail(diag(`Error reading source state "${file || ""}": open ${file || ""}: no such file or directory`, null));
+      let next;
+      try { next = stateFromJSON(JSON.parse(w.fs[file])); } catch { return fail(diag(`Error reading source state "${file}": unsupported state file format`, null)); }
+      const cur = w.states()[w.ws];
+      const refuse = (t) => { w.status = 1; return [[`Failed to write state: ${t}`, "warn"]]; };
+      if (cur && !a.has("-force")) {
+        if (cur.lineage !== next.lineage) return refuse(`cannot import state with lineage "${next.lineage}" over unrelated state with lineage "${cur.lineage}"`);
+        if (next.serial < cur.serial) return refuse(`cannot import state with serial ${next.serial} over newer state with serial ${cur.serial}`);
+      }
+      w.state = next;
+      return out;
+    }
+    if (cmd === "replace-provider" || cmd === "identities") return [[`terraform state ${cmd} is not modelled in the playground.`, "na"]];
     return fail(diag("Usage: terraform [global options] state <subcommand> [options] [args]", "  list   List resources in the state\n  mv     Move an item in the state\n  pull   Pull current state and output to stdout\n  rm     Remove instances from the state\n  show   Show a resource in the state"));
   }
 
@@ -2168,11 +2307,75 @@
     return out;
   }
 
+  // terraform test: each run block plans (or applies, in a throwaway copy of the
+  // account) with its variables, then checks its assert blocks.
+  function testCmd(w, a, say, fail, out) {
+    const pr = prepare(w, "test");
+    if (!pr.cfg) return fail(...pr.diags);
+    const want = a.multi.filter;
+    const files = Object.keys(w.fs).filter((f) => /\.tftest\.hcl$/.test(f) && (f.startsWith("tests/") || !f.includes("/")) && (!want.length || want.includes(f))).sort();
+    let passed = 0;
+    let failed = 0;
+    const constants = (blocks, at) => Object.fromEntries(blocks.filter((b) => b.type === "variables").flatMap((b) => Object.values(b.attrs).map((x) => [x.name, constant(x.expr, { ...at, line: x.line }, [])])));
+    for (const file of files) {
+      let body;
+      try { body = H.parse(w.fs[file]); } catch (e) {
+        if (!(e instanceof H.HCLError)) throw e;
+        out.push(...renderDiag(w, diag(e.summary, e.detail, { file, line: e.line })));
+        failed++;
+        continue;
+      }
+      say(`${file}... in progress`);
+      const fileVars = constants(body.blocks, { file });
+      let fileOk = true;
+      for (const run of body.blocks.filter((b) => b.type === "run")) {
+        const name = run.labels[0];
+        const command = run.attrs.command ? travText(run.attrs.command.expr) : "apply";
+        const t = new World(w.scenario, true);
+        Object.assign(t, { fs: { ...w.fs }, dot: w.dot && { ...w.dot, backend: null }, cloud: clone(w.cloud), env: { ...w.env }, cli: w.cli, installed: w.installed, rand: w.rand });
+        const p = makePlan(t, pr.cfg, pr.graph, { mode: "normal", vars: [], values: { ...fileVars, ...constants(run.blocks, { file }) } });
+        const diags = p.diags.filter((d) => d.sev === "Error");
+        for (const m of p.missing) diags.push(diag("No value for required variable", `The module under test has a required variable "${m.name}" with no value. Set it in a variables block in the test file.`, m.at));
+        if (!diags.length && command === "apply") { applyPlan(t, p); if (t.status) diags.push(diag("Test run failed", `run "${name}" could not apply.`, { file, line: run.line })); }
+        if (!diags.length) {
+          const V = p.V[""];
+          for (const as of run.blocks.filter((b) => b.type === "assert")) {
+            const at = { file, line: as.attrs.condition ? as.attrs.condition.line : as.line, ctx: `run "${name}"` };
+            const msg = as.attrs.error_message ? constant(as.attrs.error_message.expr, at, []) : "";
+            try {
+              const ok = unmark(H.evaluate(as.attrs.condition.expr, { scope: scopeOf(V, t) }));
+              if (ok === H.UNKNOWN) diags.push(diag("Unknown condition value", "Condition expression could not be evaluated at this time. This means you have executed a `run` block with `command = plan` and one of the values your condition depended on is not known until after the plan has been applied.", at));
+              else if (ok !== true) diags.push(diag("Test assertion failed", msg, at));
+            } catch (e) {
+              if (!(e instanceof H.EvalError)) throw e;
+              diags.push(diag(e.summary, e.detail, at));
+            }
+          }
+        }
+        say(`  run "${name}"... ${diags.length ? "fail" : "pass"}`, diags.length ? "warn" : null);
+        for (const d of diags) out.push(...renderDiag(w, d));
+        if (diags.length) { failed++; fileOk = false; } else passed++;
+      }
+      say(`${file}... tearing down`);
+      say(`${file}... ${fileOk ? "pass" : "fail"}`);
+    }
+    say("");
+    say(failed ? `Failure! ${passed} passed, ${failed} failed.` : `Success! ${passed} passed, 0 failed.`, failed ? "warn" : "ok");
+    w.lastTest = { passed, failed, files: files.length, filtered: want.length > 0 };
+    w.status = failed ? 1 : 0;
+    return out;
+  }
+
+  // Expressions typed by people (console, test asserts) read the evaluated module.
+  function scopeOf(V, w) {
+    return (name) => (name === "var" ? V.var : name === "local" ? V.local : name === "module" ? V.mod : name === "data" ? V.data : name === "terraform" ? { workspace: w.ws } : name === "path" ? { module: ".", root: ".", cwd: "." } : V.res[name] || (() => { throw new H.EvalError("Reference to undeclared resource", `A managed resource "${name}" has not been declared in the root module.`); })());
+  }
+
   function consoleEval(w, line) {
     const pr = w.console;
     const p = makePlan(w, pr.cfg, pr.graph, { mode: "normal", refresh: false, vars: [] });
     const V = (p.V && p.V[""]) || { var: {}, local: {}, res: {}, data: {}, mod: {} };
-    const scope = (name) => (name === "var" ? V.var : name === "local" ? V.local : name === "module" ? V.mod : name === "data" ? V.data : name === "terraform" ? { workspace: w.ws } : name === "path" ? { module: ".", root: ".", cwd: "." } : V.res[name] || (() => { throw new H.EvalError("Reference to undeclared resource", `A managed resource "${name}" has not been declared in the root module.`); })());
+    const scope = scopeOf(V, w);
     try {
       const v = H.evaluate(H.parseExpr(line, 1), { scope, funcs: { file: (f) => { if (!(f in w.fs)) throw new Error(`no file exists at "${f}"`); return w.fs[f]; } } });
       return [[v instanceof Sens || H.deepSens(v) ? "(sensitive value)" : show(v), null]];
@@ -2429,6 +2632,19 @@
       }
       return w.cloudAll("aws_s3_bucket").map((o) => [`2026-10-0${1 + (o.id.length % 9)} 09:${10 + (o.id.length % 49)}:44 ${o.id}`, null]);
     }
+    if (svc === "s3api" && (op === "list-object-versions" || op === "get-object")) {
+      const bucket = flag("--bucket");
+      const key = flag(op === "get-object" ? "--key" : "--prefix");
+      if (!w.cloudGet("aws_s3_bucket", bucket || "")) return [["", null], [`An error occurred (NoSuchBucket) when calling the ${op === "get-object" ? "GetObject" : "ListObjectVersions"} operation: The specified bucket does not exist`, "warn"]];
+      const list = w.versions[`s3://${bucket}/${key}#default`] || [];
+      if (op === "list-object-versions") return json({ Versions: list.map((v, i) => ({ ETag: `"${v.id.slice(0, 32)}"`, Size: v.json.length, StorageClass: "STANDARD", Key: key, VersionId: v.id, IsLatest: i === 0, LastModified: v.at })) });
+      const v = list.find((x) => x.id === flag("--version-id")) || (!flag("--version-id") && list[0]);
+      const outfile = words[words.length - 1];
+      if (!v) return [["", null], ["An error occurred (NoSuchVersion) when calling the GetObject operation: The specified version does not exist.", "warn"]];
+      if (!outfile || outfile.startsWith("-") || outfile === flag("--version-id") || outfile === key) return [["usage: aws s3api get-object --bucket B --key K [--version-id V] OUTFILE", "warn"]];
+      w.fs[outfile] = v.json;
+      return json({ AcceptRanges: "bytes", LastModified: v.at, ContentLength: v.json.length, VersionId: v.id, ContentType: "application/json" });
+    }
     if (svc === "ec2" && op === "describe-instances") return json({ Reservations: [{ Instances: w.cloudAll("aws_instance").map((o) => ({ InstanceId: o.id, InstanceType: o.attrs.instance_type, ImageId: o.attrs.ami, State: { Name: o.attrs.instance_state || "running" }, SecurityGroups: (o.attrs.vpc_security_group_ids || []).map((g) => ({ GroupId: g })), Tags: tagList(o.attrs.tags) })) }] });
     if (svc === "ec2" && op === "describe-instance-status") {
       const ids = flag("--instance-ids");
@@ -2447,7 +2663,7 @@
       const items = Object.entries(w.locks).filter(([k]) => k.startsWith("s3://")).map(([k, l]) => ({ LockID: { S: k.replace("s3://", "") }, Info: { S: JSON.stringify({ ID: l.id, Operation: l.op, Who: l.who, Version: l.version, Created: l.created, Path: l.path }) } }));
       return json({ Items: items, Count: items.length, ScannedCount: items.length });
     }
-    return na("The playground models these read-only aws commands: sts get-caller-identity, s3 ls, ec2 describe-instances | describe-instance-status | describe-security-groups | describe-vpcs, rds describe-db-instances, autoscaling describe-auto-scaling-groups, dynamodb scan --table-name T.");
+    return na("The playground models these aws commands: sts get-caller-identity, s3 ls, s3api list-object-versions | get-object, ec2 describe-instances | describe-instance-status | describe-security-groups | describe-vpcs, rds describe-db-instances, autoscaling describe-auto-scaling-groups, dynamodb scan --table-name T.");
   }
 
   // A CI run: a fresh checkout of what git would commit, on a Linux runner, with
@@ -4350,17 +4566,326 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
       ],
       lesson: "Never put access keys in Terraform. Use profiles or SSO locally and OIDC roles in CI; the provider finds them without any code.",
       tries: ["terraform plan", "aws sts get-caller-identity"]
+    },
+    {
+      id: "throttling",
+      title: "API rate limit during apply",
+      level: "10",
+      story: "Twelve new build agents for the CI fleet. Apply creates one, then stops with RequestLimitExceeded. Someone set max_retries = 1 last month so CI would fail fast.",
+      goal: "Get all twelve build agents created.",
+      done: "Twelve agents running.",
+      throttle: true,
+      files: {
+        "versions.tf": versions().replace('  region = "eu-west-1"', '  region      = "eu-west-1"\n  max_retries = 1'),
+        "main.tf": hcl(`
+          resource "aws_instance" "agent" {
+            count         = 12
+            ami           = "${AMI}"
+            instance_type = "t3.medium"
+
+            tags = {
+              Name = "build-agent-\${count.index}"
+            }
+          }
+        `),
+        ".gitignore": GITIGNORE
+      },
+      setup: (w) => quietly(w, "terraform init"),
+      won: (w) => Object.values(w.state.resources).filter((r) => r.type === "aws_instance" && live(w, r.type, r.id)).length === 12,
+      check: (w) => { const n = Object.values(w.state.resources).filter((r) => r.type === "aws_instance").length; return { label: "Build agents", ok: n === 12, text: `${n} of 12 running` }; },
+      hints: [
+        "terraform apply. The error is from AWS, not your code: what does \"exceeded maximum number of attempts, 1\" say about retries?",
+        "Terraform makes up to 10 API calls at once (-parallelism), and the AWS provider normally retries throttled calls with backoff (25 attempts). With max_retries = 1, the first throttle fails the run. Re-running only gets one more agent each time.",
+        "Remove max_retries = 1 from the provider block (or set it to 10 or more), then terraform apply. For very large applies, -parallelism=3 also eases the burst."
+      ],
+      lesson: "Throttling is normal at scale: let the provider retry (keep max_retries at its default), lower -parallelism for big bursts, and split very large states. Failing fast on throttles only turns them into failed runs.",
+      tries: ["terraform apply -auto-approve", "cat versions.tf"]
+    },
+    {
+      id: "timeouts",
+      title: "Timeout leaves a tainted database",
+      level: "05",
+      story: "Restoring the 2 TB warehouse snapshot took longer than the provider waits. Apply failed after 40 minutes; the database finished soon after, and the nightly load is already writing to it. Now the plan wants to replace it.",
+      goal: "Keep the database that was created, with a clean plan, and stop the timeout happening again.",
+      done: "Same database, clean plan, longer timeout.",
+      slowDb: true,
+      files: {
+        "versions.tf": versions(),
+        "main.tf": hcl(`
+          resource "aws_db_instance" "warehouse" {
+            identifier                  = "warehouse-db"
+            snapshot_identifier         = "warehouse-2026-10-29"
+            engine                      = "postgres"
+            instance_class              = "db.r6g.2xlarge"
+            allocated_storage           = 2000
+            username                    = "warehouse"
+            manage_master_user_password = true
+            skip_final_snapshot         = true
+          }
+        `),
+        ".gitignore": GITIGNORE
+      },
+      setup: (w) => {
+        quietly(w, "terraform init");
+        shell(w, "terraform apply -auto-approve");
+        const r = w.state.resources["aws_db_instance.warehouse"];
+        if (!r || !r.tainted) throw new Error("setup of timeouts: the apply should leave a tainted database");
+        w.memo.id = r.id;
+        w.cloudGet("aws_db_instance", r.id).extra.objects = 1;
+        w.status = 0;
+      },
+      won: (w) => {
+        const r = w.state.resources["aws_db_instance.warehouse"];
+        const t = (/create\s*=\s*"([^"]+)"/.exec(w.fs["main.tf"] || "") || [])[1] || "";
+        const mins = Number((/(\d+)h/.exec(t) || [0, 0])[1]) * 60 + Number((/(\d+)m/.exec(t) || [0, 0])[1]);
+        return Boolean(r) && r.id === w.memo.id && !r.tainted && !w.lost.length && cleanPlan(w) && mins >= 60;
+      },
+      check: (w) => { const r = w.state.resources["aws_db_instance.warehouse"]; return { label: "warehouse-db", ok: Boolean(r) && r.id === w.memo.id && !r.tainted, text: w.lost.length ? "replaced: the loaded data is gone" : r && r.tainted ? "tainted: next apply replaces it" : "kept" }; },
+      hints: [
+        "terraform plan says the database is tainted. aws rds describe-db-instances: is it actually broken?",
+        "Terraform taints whatever it created when the create call does not finish in time, because it cannot know whether the object is usable. Applying now destroys a healthy, loaded database.",
+        "terraform untaint aws_db_instance.warehouse, add timeouts { create = \"120m\" } to the resource (on separate lines), then terraform plan."
+      ],
+      lesson: "A create that times out leaves a tainted object. Check the real resource first; untaint it if it is fine. Set timeouts for slow operations (restores, large instances) so it does not happen again.",
+      tries: ["terraform plan", "aws rds describe-db-instances"]
+    },
+    {
+      id: "staterecover",
+      title: "Restore an overwritten state",
+      level: "13",
+      story: "During last night's cleanup, someone ran terraform state push -force from a scratch directory. The shared state is now empty, so the plan wants to create everything that already exists. The state bucket has versioning on.",
+      goal: "Restore the last good state from the bucket's version history, without creating anything.",
+      done: "State restored; plan is clean.",
+      files: {
+        "versions.tf": versions("~> 5.0", S3_BACKEND()),
+        "main.tf": hcl(`
+          resource "aws_instance" "web" {
+            ami           = "${AMI}"
+            instance_type = "t3.small"
+
+            tags = {
+              Name = "shop-web"
+            }
+          }
+
+          resource "aws_s3_bucket" "site" {
+            bucket = "quest-site-2026"
+          }
+        `),
+        ".gitignore": GITIGNORE
+      },
+      cloud: STATE_BUCKET,
+      setup: (w) => {
+        const want = w.fs["main.tf"];
+        w.fs["main.tf"] = want.replace('"shop-web"', '"web"');
+        quietly(w, "terraform init", "terraform apply -auto-approve");
+        w.fs["main.tf"] = want;
+        quietly(w, "terraform apply -auto-approve");
+        w.memo.ids = Object.values(w.state.resources).map((r) => r.id).sort();
+        w.state = { ...emptyState(w), lineage: w.state.lineage, serial: w.state.serial + 1 };
+        w.lastPlan = null;
+      },
+      won: (w) => JSON.stringify(Object.values(w.state.resources).map((r) => r.id).sort()) === JSON.stringify(w.memo.ids) && w.cloudAll("aws_instance").length === 1 && cleanPlan(w),
+      check: (w) => { const n = Object.keys(w.state.resources).length; const dup = w.cloudAll("aws_instance").length > 1; return { label: "Shared state", ok: n === 2 && !dup, text: dup ? "a duplicate server was created" : `${n} of 2 resources` }; },
+      hints: [
+        "terraform plan wants to create both. aws s3api list-object-versions --bucket quest-tfstate --prefix shop/terraform.tfstate lists every version of the state file.",
+        "The newest version is the empty push. Download the one before it with aws s3api get-object ... --version-id <id> recovered.tfstate. Applying now would create a second server; plain state push refuses an older serial.",
+        "aws s3api get-object --bucket quest-tfstate --key shop/terraform.tfstate --version-id <second newest> recovered.tfstate, then terraform state push -force recovered.tfstate, then terraform plan."
+      ],
+      lesson: "Turn on versioning for state buckets: it is the undo button. Recover by downloading the last good version and pushing it with -force, then prove it with a clean plan. Avoid state push in daily work.",
+      tries: ["terraform plan", "aws s3api list-object-versions --bucket quest-tfstate --prefix shop/terraform.tfstate"]
+    },
+    {
+      id: "awsv5upgrade",
+      title: "AWS provider major upgrade",
+      level: "10",
+      story: "The dependency bot opened the pull request that moves hashicorp/aws from 4.x to 5.x. CI is red, and the plan output is full of warnings.",
+      goal: "Run on provider 5 with a clean plan: nothing replaced, no deprecated arguments, bucket versioning kept.",
+      done: "On provider 5, nothing replaced, split S3 resources.",
+      files: {
+        "versions.tf": versions("~> 5.0"),
+        "main.tf": hcl(`
+          resource "aws_s3_bucket" "reports" {
+            bucket = "quest-reports-archive"
+            acl    = "private"
+
+            versioning {
+              enabled = true
+            }
+          }
+
+          resource "aws_db_instance" "reports" {
+            identifier                  = "reports-db"
+            name                        = "reports"
+            engine                      = "postgres"
+            instance_class              = "db.t4g.small"
+            username                    = "reports"
+            manage_master_user_password = true
+            skip_final_snapshot         = true
+          }
+        `),
+        ".gitignore": GITIGNORE
+      },
+      setup: (w) => {
+        const want = w.fs["versions.tf"];
+        w.fs["versions.tf"] = want.replace('"~> 5.0"', '"~> 4.0"');
+        quietly(w, "terraform init", "terraform apply -auto-approve");
+        w.fs["versions.tf"] = want;
+        w.memo.ids = Object.values(w.state.resources).map((r) => r.id).sort();
+        w.lastPlan = null;
+      },
+      won: (w) => {
+        const v = Object.values(w.state.resources).find((r) => r.type === "aws_s3_bucket_versioning");
+        const block = (/resource "aws_s3_bucket" "reports" \{[\s\S]*?\n\}/.exec(w.fs["main.tf"] || "") || [""])[0];
+        return Boolean(w.dot && vcmp(w.dot.providers.aws, "5.0.0") >= 0) && cleanPlan(w) && !w.lost.length &&
+          w.memo.ids.every((id) => Object.values(w.state.resources).some((r) => r.id === id)) &&
+          Boolean(v && v.attrs.versioning_configuration[0].status === "Enabled") && !/\bacl\s*=|versioning\s*\{/.test(block);
+      },
+      check: (w) => { const p = w.dot && w.dot.providers.aws; return { label: "hashicorp/aws", ok: Boolean(p) && vcmp(p, "5.0.0") >= 0 && !w.lost.length, text: w.lost.length ? "a resource was replaced" : p ? `v${p}` : "not initialised" }; },
+      hints: [
+        "terraform plan asks for init -upgrade. After that, read the errors and warnings: one argument was removed in 5.0, two are deprecated.",
+        "aws_db_instance.name became db_name; the provider moves the value in state, so no replacement. The bucket's inline acl and versioning moved to their own resources in v4 and are deprecated.",
+        "terraform init -upgrade; rename name to db_name; remove acl and the versioning block; add resource \"aws_s3_bucket_versioning\" \"reports\" { bucket = aws_s3_bucket.reports.id  versioning_configuration { status = \"Enabled\" } }; terraform apply; terraform plan."
+      ],
+      lesson: "Upgrade a provider major on its own branch: read the upgrade guide, run init -upgrade, fix removed arguments, move deprecated ones, and accept nothing that says replace. Commit the lock file with the change.",
+      tries: ["terraform plan", "terraform init -upgrade"]
+    },
+    {
+      id: "tftest",
+      title: "terraform test fails",
+      level: "14",
+      story: "A refactor of the logging stack looked fine in plan. CI's terraform test step now fails on the naming rule.",
+      goal: "Make terraform test pass without changing the tests.",
+      done: "Both test files pass.",
+      files: {
+        "versions.tf": versions(),
+        "variables.tf": hcl(`
+          variable "environment" {
+            type = string
+          }
+
+          variable "team" {
+            type = string
+          }
+        `),
+        "main.tf": hcl(`
+          resource "aws_s3_bucket" "logs" {
+            bucket = "quest-logs-\${var.team}"
+
+            tags = {
+              Team        = var.team
+              Environment = var.environment
+            }
+          }
+        `),
+        "tests/naming.tftest.hcl": hcl(`
+          variables {
+            environment = "dev"
+            team        = "data"
+          }
+
+          run "bucket_name_has_environment" {
+            command = plan
+
+            assert {
+              condition     = aws_s3_bucket.logs.bucket == "quest-logs-dev"
+              error_message = "The logs bucket name must end with the environment."
+            }
+          }
+        `),
+        "tests/tags.tftest.hcl": hcl(`
+          variables {
+            environment = "dev"
+            team        = "data"
+          }
+
+          run "team_tag" {
+            command = plan
+
+            assert {
+              condition     = aws_s3_bucket.logs.tags.Team == "data"
+              error_message = "The Team tag must name the owning team."
+            }
+          }
+        `),
+        ".github/workflows/terraform.yml": workflow(["terraform init -backend=false -input=false", "terraform test"]),
+        ".gitignore": GITIGNORE
+      },
+      setup: (w) => quietly(w, "terraform init"),
+      won: (w) => { const t = w.lastTest; return Boolean(t && !t.failed && t.passed === 2 && !t.filtered) && ["tests/naming.tftest.hcl", "tests/tags.tftest.hcl"].every((f) => w.fs[f] === w.scenario.files[f]); },
+      check: (w) => { const t = w.lastTest; return { label: "terraform test", ok: Boolean(t && !t.failed && t.passed === 2), text: t ? `${t.passed} passed, ${t.failed} failed` : "not run yet" }; },
+      hints: [
+        "terraform test. Which assertion fails, and what value did the plan produce?",
+        "The test encodes the naming standard; editing or deleting it hides the bug from the next person. Compare the bucket expression with the rule.",
+        "In main.tf use bucket = \"quest-logs-${var.environment}\", then terraform test."
+      ],
+      lesson: "terraform test runs plans (or throwaway applies) with set variables and checks assertions, so conventions are enforced before review. When a test fails, fix the code unless the rule itself changed on purpose.",
+      tries: ["terraform test", "cat tests/naming.tftest.hcl"]
+    },
+    {
+      id: "perpetualdiff",
+      title: "A plan that never settles",
+      level: "12",
+      story: "Every plan for the orders database shows a change to its security group, and the database exporter's metrics vanish after each deploy. The monitoring team added their rule as a separate resource.",
+      goal: "Keep both rules (5432 from the app subnet, 9187 from monitoring) with a plan that stays clean.",
+      done: "Both rules in place; plans are clean.",
+      files: {
+        "versions.tf": versions(),
+        "main.tf": hcl(`
+          resource "aws_security_group" "db" {
+            name        = "orders-db"
+            description = "Postgres for the orders service"
+            vpc_id      = "${VPC.id}"
+
+            ingress {
+              from_port   = 5432
+              to_port     = 5432
+              protocol    = "tcp"
+              cidr_blocks = ["10.0.1.0/24"]
+            }
+          }
+        `),
+        "monitoring.tf": hcl(`
+          resource "aws_vpc_security_group_ingress_rule" "postgres_exporter" {
+            security_group_id = aws_security_group.db.id
+            ip_protocol       = "tcp"
+            from_port         = 9187
+            to_port           = 9187
+            cidr_ipv4         = "10.0.50.0/24"
+          }
+        `),
+        ".gitignore": GITIGNORE
+      },
+      cloud: [VPC],
+      setup: (w) => { quietly(w, "terraform init", "terraform apply -auto-approve"); w.lastPlan = null; },
+      won: (w) => {
+        const sg = w.state.resources["aws_security_group.db"];
+        const o = sg && w.cloudGet(sg.type, sg.id);
+        if (!o) return false;
+        const ports = readAttrs(w, o).ingress.map((r) => r.from_port);
+        const text = filesText(w);
+        const mixed = /ingress\s*\{/.test(text) && /resource "aws_vpc_security_group_ingress_rule"/.test(text);
+        return ports.includes(5432) && ports.includes(9187) && cleanPlan(w) && !mixed;
+      },
+      check: (w) => { const sg = w.state.resources["aws_security_group.db"]; const o = sg && w.cloudGet(sg.type, sg.id); const ports = o ? readAttrs(w, o).ingress.map((r) => r.from_port).sort((a, b) => a - b) : []; return { label: "orders-db allows", ok: ports.includes(5432) && ports.includes(9187), text: ports.length ? `ports ${ports.join(", ")}` : "nothing" }; },
+      hints: [
+        "terraform plan twice, with an apply between. What does each one want, and who owns port 9187?",
+        "Inline ingress blocks describe the group's complete list, so the provider removes any rule they do not name, and the standalone resource adds it back next time. Pick one style per security group.",
+        "Move the exporter rule into the group as a second ingress block (from_port and to_port 9187, protocol \"tcp\", cidr_blocks [\"10.0.50.0/24\"]) and delete monitoring.tf's resource. Apply, plan, and apply again if the plan re-adds 9187; then plan is clean."
+      ],
+      lesson: "Never mix inline rules with aws_vpc_security_group_*_rule resources on the same group: they fight forever. Either everything inline, or (better for teams) everything as separate rule resources, importing existing rules by their sgr- IDs.",
+      tries: ["terraform plan", "aws ec2 describe-security-groups"]
     }
   ];
 
   // Easiest first, then the order an engineer meets them.
   const GROUPS = [
     ["Basics", ["noinit", "fmtcheck", "unsupported", "invalidref", "outputmissing"]],
-    ["State", ["drift", "import", "moved", "removed", "taint"]],
-    ["Plans and changes", ["dbreplace", "cbd", "countshift", "ignorechanges", "target", "cycle", "teardown"]],
+    ["State", ["drift", "import", "moved", "removed", "taint", "staterecover"]],
+    ["Plans and changes", ["dbreplace", "cbd", "countshift", "ignorechanges", "perpetualdiff", "target", "cycle", "teardown", "timeouts", "throttling"]],
     ["Modules and variables", ["tfvarsprec", "varci", "validation", "instancekey", "foreachunknown", "modoutput", "datanotfound", "modpin", "dependson"]],
-    ["Providers and versions", ["lockedversion", "provconflict", "requiredversion", "newerstate", "platformlock", "provalias"]],
-    ["Collaboration and CI", ["lockstuck", "backendbucket", "backendmigrate", "nolock", "workspace", "staleplan"]],
+    ["Providers and versions", ["lockedversion", "provconflict", "requiredversion", "newerstate", "platformlock", "provalias", "awsv5upgrade"]],
+    ["Collaboration and CI", ["lockstuck", "backendbucket", "backendmigrate", "nolock", "workspace", "staleplan", "tftest"]],
     ["Security", ["credentials", "sensitiveout", "dbpassword", "openssh", "publicbucket"]]
   ];
   const ORDER = GROUPS.flatMap(([, ids]) => ids);

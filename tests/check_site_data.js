@@ -23,7 +23,7 @@ for (const lv of Q.levels) {
 let total = 0;
 for (const lv of Q.levels) {
   const items = [...(Q.quiz[lv.id] || []), ...(bank[lv.id] || [])];
-  assert.ok(items.length >= 5, `level ${lv.id} needs at least 5 quiz questions, has ${items.length}`);
+  assert.ok(items.length >= 8, `level ${lv.id} needs at least 8 quiz questions, has ${items.length}`);
   const seen = new Set();
   for (const item of items) {
     total++;
