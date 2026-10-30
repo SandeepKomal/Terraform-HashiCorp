@@ -77,6 +77,8 @@ The repository CI checks Terraform formatting, validation, and security scanning
 
 Examples should avoid hard-coded account-specific IDs, passwords, private keys, and credentials.
 
+The Trivy scan in CI blocks on HIGH and CRITICAL findings. The few findings that are the point of an example (a public load balancer, an HTTP listener without a domain, HTTPS-only egress for downloads, the public subnets of the VPC example, a CIDR-limited EKS endpoint) are listed with a reason in [`.trivyignore.yaml`](.trivyignore.yaml).
+
 ## Recommended learning path
 
 1. `tf-vpc`

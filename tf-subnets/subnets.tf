@@ -12,7 +12,7 @@ resource "aws_subnet" "example_subnet" {
   availability_zone = "us-east-1a"    # Change this to your desired availability zone
 
   # Other optional parameters
-  map_public_ip_on_launch = true
+  map_public_ip_on_launch = false
 
   tags = {
     Name = "komal Example Subnet"

@@ -21,6 +21,14 @@ resource "aws_instance" "sandy_instance" {
   instance_type     = "t2.micro"
   availability_zone = "us-east-1d"
 
+  metadata_options {
+    http_tokens = "required"
+  }
+
+  root_block_device {
+    encrypted = true
+  }
+
   tags = {
     Name = "sandyEc2"
   }

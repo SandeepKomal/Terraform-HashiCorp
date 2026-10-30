@@ -15,12 +15,17 @@ resource "aws_security_group" "http" {
     }
   }
 
+  # The load balancer only talks to its targets, inside the VPC.
   egress {
-    protocol    = "-1"
-    from_port   = 0
-    to_port     = 0
-    cidr_blocks = ["0.0.0.0/0"]
+    protocol    = "tcp"
+    from_port   = 80
+    to_port     = 80
+    cidr_blocks = [data.aws_vpc.main.cidr_block]
   }
+}
+
+data "aws_vpc" "main" {
+  id = var.aws_vpc
 }
 
 resource "aws_lb" "main" {
@@ -28,6 +33,8 @@ resource "aws_lb" "main" {
   load_balancer_type = "application"
   subnets            = var.aws_subnet.*
   security_groups    = [aws_security_group.http.id]
+
+  drop_invalid_header_fields = true
 }
 
 resource "aws_lb_target_group" "app" {

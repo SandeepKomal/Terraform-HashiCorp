@@ -43,3 +43,13 @@ variable "node_min_size" {
   type        = number
   default     = 1
 }
+
+variable "public_access_cidrs" {
+  description = "Networks allowed to reach the public API endpoint (your office or VPN). Never 0.0.0.0/0."
+  type        = list(string)
+
+  validation {
+    condition     = length(var.public_access_cidrs) > 0 && alltrue([for cidr in var.public_access_cidrs : cidr != "0.0.0.0/0"])
+    error_message = "List the networks that need kubectl access; 0.0.0.0/0 is not allowed."
+  }
+}

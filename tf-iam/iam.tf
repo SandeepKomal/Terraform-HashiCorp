@@ -52,6 +52,15 @@ resource "aws_instance" "example_instance" {
   instance_type        = var.instance_type
   iam_instance_profile = aws_iam_instance_profile.example_profile.name
 
+  # IMDSv2 only: the role's credentials need a session token to read.
+  metadata_options {
+    http_tokens = "required"
+  }
+
+  root_block_device {
+    encrypted = true
+  }
+
   tags = {
     Name = "exampleinstance"
   }

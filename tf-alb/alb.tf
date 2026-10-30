@@ -9,6 +9,7 @@ resource "aws_lb" "my_alb2" {
   security_groups            = var.security_groups
   subnets                    = var.subnets
   enable_deletion_protection = var.enable_deletion_protection
+  drop_invalid_header_fields = true
 }
 
 resource "aws_lb_listener" "my_listener" {
