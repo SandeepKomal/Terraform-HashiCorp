@@ -2,6 +2,8 @@ resource "aws_alb" "main" {
   name            = "cb-load-balancer"
   subnets         = var.aws_subnet
   security_groups = [aws_security_group.lb.id]
+
+  drop_invalid_header_fields = true
 }
 
 resource "aws_alb_target_group" "app" {

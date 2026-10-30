@@ -21,10 +21,11 @@ resource "aws_security_group" "tcn_security_grp" {
     cidr_blocks = var.https_cidr_block
   }
 
+  # Updates and package downloads go out over HTTPS.
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 

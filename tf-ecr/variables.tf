@@ -21,6 +21,12 @@ variable "encrypt_type" {
 }
 
 variable "image_mutability" {
-  description = "The list of ecr names to create"
+  description = "IMMUTABLE keeps each tag pointing at one image, so deployments are repeatable"
   type        = string
+  default     = "IMMUTABLE"
+
+  validation {
+    condition     = contains(["IMMUTABLE", "MUTABLE"], var.image_mutability)
+    error_message = "image_mutability must be IMMUTABLE or MUTABLE."
+  }
 }

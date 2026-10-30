@@ -11,12 +11,17 @@ resource "aws_security_group" "lb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # The load balancer only talks to the tasks, inside the VPC.
   egress {
-    protocol    = "-1"
-    from_port   = 0
-    to_port     = 0
-    cidr_blocks = ["0.0.0.0/0"]
+    protocol    = "tcp"
+    from_port   = var.app_port
+    to_port     = var.app_port
+    cidr_blocks = [data.aws_vpc.main.cidr_block]
   }
+}
+
+data "aws_vpc" "main" {
+  id = var.aws_vpc
 }
 
 # Traffic to the ECS cluster should only come from the ALB
@@ -32,10 +37,11 @@ resource "aws_security_group" "ecs_tasks" {
     security_groups = [aws_security_group.lb.id]
   }
 
+  # Fargate pulls images and sends logs over HTTPS.
   egress {
-    protocol    = "-1"
-    from_port   = 0
-    to_port     = 0
+    protocol    = "tcp"
+    from_port   = 443
+    to_port     = 443
     cidr_blocks = ["0.0.0.0/0"]
   }
 }

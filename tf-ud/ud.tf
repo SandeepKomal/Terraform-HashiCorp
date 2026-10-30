@@ -53,10 +53,11 @@ resource "aws_security_group" "example" {
     cidr_blocks = var.ssh_cidr
   }
 
+  # Package and image downloads (dnf, Docker Hub) go out over HTTPS.
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
@@ -67,6 +68,14 @@ resource "aws_instance" "example" {
   key_name      = var.key_name
 
   vpc_security_group_ids = [aws_security_group.example.id]
+
+  metadata_options {
+    http_tokens = "required"
+  }
+
+  root_block_device {
+    encrypted = true
+  }
 
   user_data = <<-EOF
     #!/bin/bash

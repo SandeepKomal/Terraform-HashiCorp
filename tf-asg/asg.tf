@@ -10,6 +10,11 @@ resource "aws_launch_template" "mysvc" {
   instance_type                        = var.instance_type
   key_name                             = var.key_name
 
+  metadata_options {
+    http_endpoint = "enabled"
+    http_tokens   = "required"
+  }
+
   network_interfaces {
     associate_public_ip_address = true
     subnet_id                   = var.subnet_id

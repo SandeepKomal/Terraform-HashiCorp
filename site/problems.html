@@ -1,0 +1,1066 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="description" content="Every common Terraform error with its exact message, what it means, the likely causes, how to confirm, the fix and how to prevent it: 58 entries.">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Terraform errors and fixes: Terraform Quest">
+  <meta property="og:description" content="Exact Terraform error messages with causes, fixes and prevention.">
+  <link rel="canonical" href="https://sandeepkomal.github.io/Terraform-HashiCorp/problems.html">
+  <title>Terraform errors and fixes</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
+</head>
+<body>
+  <main class="wrap problems-page">
+    <p class="eyebrow"><img src="logo.svg" alt="" width="28" height="28"><a href="./">Terraform Quest</a></p>
+    <h1>Terraform errors and fixes</h1>
+    <p class="lede">58 errors and surprises, each with the exact message, what it means, how to confirm the cause, the fix and how to prevent it. The <a href="./#doctor">interactive version</a> also searches pasted error text and opens each fix in a practice scenario.</p>
+    <nav aria-label="Problems">
+      <h2>Init, providers and versions</h2>
+      <ul>
+        <li><a href="#inconsistent-lock">Inconsistent dependency lock file</a></li>
+        <li><a href="#plugins-not-installed">Required plugins are not installed</a></li>
+        <li><a href="#provider-query">Failed to query available provider packages</a></li>
+        <li><a href="#provider-checksum">Provider package doesn't match the lock file checksums</a></li>
+        <li><a href="#core-version">Unsupported Terraform Core version</a></li>
+        <li><a href="#newer-state">State snapshot was created by a newer Terraform</a></li>
+        <li><a href="#module-not-installed">Module not installed</a></li>
+        <li><a href="#module-version">Module version requirements have changed</a></li>
+        <li><a href="#credentials">No valid credential sources found</a></li>
+        <li><a href="#deprecated-argument">Warning: Argument is deprecated</a></li>
+      </ul>
+      <h2>Configuration errors</h2>
+      <ul>
+        <li><a href="#unsupported-argument">Unsupported argument</a></li>
+        <li><a href="#unsupported-block">Unsupported block type</a></li>
+        <li><a href="#missing-argument">Missing required argument</a></li>
+        <li><a href="#invalid-reference">Invalid reference</a></li>
+        <li><a href="#undeclared-resource">Reference to undeclared resource</a></li>
+        <li><a href="#undeclared-variable">Reference to undeclared input variable</a></li>
+        <li><a href="#unsupported-attribute">Unsupported attribute</a></li>
+        <li><a href="#missing-instance-key">Missing resource instance key</a></li>
+        <li><a href="#cycle">Cycle</a></li>
+        <li><a href="#invalid-for-each">Invalid for_each argument</a></li>
+        <li><a href="#invalid-count">Invalid count argument</a></li>
+        <li><a href="#provider-not-present">Provider configuration not present</a></li>
+        <li><a href="#test-assertion">Test assertion failed (terraform test)</a></li>
+      </ul>
+      <h2>Variables and outputs</h2>
+      <ul>
+        <li><a href="#no-value-variable">No value for required variable</a></li>
+        <li><a href="#invalid-variable">Invalid value for variable</a></li>
+        <li><a href="#sensitive-output">Output refers to sensitive values</a></li>
+        <li><a href="#no-outputs">No outputs found</a></li>
+        <li><a href="#fmt-check">terraform fmt -check exits with code 3</a></li>
+      </ul>
+      <h2>State, backends and locking</h2>
+      <ul>
+        <li><a href="#state-lock">Error acquiring the state lock</a></li>
+        <li><a href="#backend-init">Backend initialization required</a></li>
+        <li><a href="#backend-changed">Backend configuration changed</a></li>
+        <li><a href="#backend-bucket">S3 bucket does not exist (backend)</a></li>
+        <li><a href="#stale-plan">Saved plan is stale</a></li>
+        <li><a href="#import-missing">Cannot import non-existent remote object</a></li>
+        <li><a href="#already-managed">Resource already managed by Terraform</a></li>
+        <li><a href="#workspace-missing">Workspace doesn't exist</a></li>
+        <li><a href="#empty-state">Plan wants to create everything that already exists</a></li>
+        <li><a href="#state-push-serial">cannot import state with serial … over newer state</a></li>
+      </ul>
+      <h2>Plans that surprise you</h2>
+      <ul>
+        <li><a href="#forces-replacement">Plan shows -/+ … # forces replacement</a></li>
+        <li><a href="#prevent-destroy">Instance cannot be destroyed</a></li>
+        <li><a href="#drift">Objects have changed outside of Terraform</a></li>
+        <li><a href="#count-shift">Removing one list item changes or destroys others</a></li>
+        <li><a href="#renamed-resource">Renamed resource plans destroy and create</a></li>
+        <li><a href="#known-after-apply">Data source read during apply causes replacement</a></li>
+        <li><a href="#targeting">Resource targeting is in effect</a></li>
+        <li><a href="#tainted">Plan says the resource is tainted, so must be replaced</a></li>
+        <li><a href="#perpetual-diff">The plan always shows the same change</a></li>
+      </ul>
+      <h2>AWS errors during apply</h2>
+      <ul>
+        <li><a href="#dependency-violation">DependencyViolation when deleting a security group</a></li>
+        <li><a href="#duplicate-group">InvalidGroup.Duplicate</a></li>
+        <li><a href="#bucket-exists">BucketAlreadyOwnedByYou / BucketAlreadyExists</a></li>
+        <li><a href="#bucket-not-empty">BucketNotEmpty</a></li>
+        <li><a href="#deletion-protection">Cannot delete protected DB Instance</a></li>
+        <li><a href="#acl-not-supported">AccessControlListNotSupported</a></li>
+        <li><a href="#viewer-certificate">InvalidViewerCertificate (CloudFront)</a></li>
+        <li><a href="#data-not-found">no matching EC2 VPC found</a></li>
+        <li><a href="#throttling">RequestLimitExceeded or Rate exceeded during apply</a></li>
+        <li><a href="#create-timeout">timeout while waiting for state to become 'available'</a></li>
+        <li><a href="#duplicate-permission">InvalidPermission.Duplicate</a></li>
+      </ul>
+    </nav>
+    <section class="card problem" id="inconsistent-lock">
+      <h2>Inconsistent dependency lock file</h2>
+      <pre class="err"><code>Error: Inconsistent dependency lock file
+
+The following dependency selections recorded in the lock file are
+inconsistent with the current configuration:
+  - provider registry.terraform.io/hashicorp/aws: required by this configuration but no version is selected</code></pre>
+      <p>The configuration needs a provider that .terraform.lock.hcl has no entry for, or the lock pins a version the constraints no longer allow.</p>
+      <h3>Likely causes</h3>
+      <ul><li>terraform init was never run in this checkout</li><li>A new provider or module was added</li><li>A version constraint was raised above the locked version</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>cat .terraform.lock.hcl
+grep -rn required_providers -A6 *.tf</code></pre>
+      <h3>Fix</h3>
+      <ol><li>terraform init (first time or new provider)</li><li>terraform init -upgrade (constraint changed), then commit the lock file</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Commit .terraform.lock.hcl</li><li>Change constraints and run init -upgrade in the same pull request</li></ul>
+      <p>Practise it: <a href="./#play/noinit">Forgot terraform init</a>, <a href="./#play/lockedversion">Lock file pins an old provider</a> · <a href="./#fix/inconsistent-lock">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="plugins-not-installed">
+      <h2>Required plugins are not installed</h2>
+      <pre class="err"><code>Error: Required plugins are not installed
+
+The installed provider plugins are not consistent with the packages
+selected in the dependency lock file</code></pre>
+      <p>The lock file names a provider build that is not in .terraform/providers on this machine.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Fresh clone or new CI runner</li><li>.terraform was deleted</li><li>Someone else updated the lock file</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>ls -a
+terraform version</code></pre>
+      <h3>Fix</h3>
+      <ol><li>terraform init</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Run terraform init as the first step of every CI job</li></ul>
+      <p>Practise it: <a href="./#play/noinit">Forgot terraform init</a> · <a href="./#fix/plugins-not-installed">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="provider-query">
+      <h2>Failed to query available provider packages</h2>
+      <pre class="err"><code>Error: Failed to query available provider packages
+
+Could not retrieve the list of available versions for provider
+hashicorp/aws: no available releases match the given constraints ~&gt; 5.0, &gt;= 6.0</code></pre>
+      <p>No released version satisfies every constraint from the root and all modules, or the locked version no longer matches.</p>
+      <h3>Likely causes</h3>
+      <ul><li>A module requires a newer (or older) major version than the root allows</li><li>The lock file pins an old version (message says: must use terraform init -upgrade)</li><li>A typo in the provider source</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform providers
+cat .terraform.lock.hcl</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Pin the module to a release compatible with your constraint, or move the root constraint in a reviewed change</li><li>terraform init -upgrade when the lock file is the only obstacle</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Pin module versions</li><li>Upgrade provider majors deliberately, one pull request each</li></ul>
+      <p>Practise it: <a href="./#play/provconflict">Provider version conflict</a>, <a href="./#play/lockedversion">Lock file pins an old provider</a> · <a href="./#fix/provider-query">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="provider-checksum">
+      <h2>Provider package doesn't match the lock file checksums</h2>
+      <pre class="err"><code>Error: Failed to install provider
+
+Error while installing hashicorp/aws v5.80.0: the current package for
+registry.terraform.io/hashicorp/aws 5.80.0 doesn't match any of the
+checksums previously recorded in the dependency lock file</code></pre>
+      <p>The lock file has no checksum for this machine's platform, which happens when init ran through a mirror or plugin cache on another OS.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Lock file generated on macOS, CI runs Linux</li><li>Provider mirror records only the local platform</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>cat .terraform.lock.hcl   # which h1: entries exist</code></pre>
+      <h3>Fix</h3>
+      <ol><li>terraform providers lock -platform=darwin_arm64 -platform=linux_amd64 -platform=windows_amd64, then commit</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Run providers lock for every platform whenever a provider version changes</li></ul>
+      <p>Practise it: <a href="./#play/platformlock">Lock file checksums for one platform</a> · <a href="./#fix/provider-checksum">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="core-version">
+      <h2>Unsupported Terraform Core version</h2>
+      <pre class="err"><code>Error: Unsupported Terraform Core version
+
+This configuration does not support Terraform version 1.10.5.</code></pre>
+      <p>required_version in a terraform block excludes the CLI you are running.</p>
+      <h3>Likely causes</h3>
+      <ul><li>A narrow pin such as ~&gt; 1.5.0</li><li>A module requires a newer CLI</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform version
+grep -rn required_version .</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Install a matching CLI (tfenv install/use), or widen the constraint in a reviewed change and upgrade CI together</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Pin to a tested range (~&gt; 1.10) and keep CI and laptops on the same version (.terraform-version)</li></ul>
+      <p>Practise it: <a href="./#play/requiredversion">Unsupported Terraform Core version</a> · <a href="./#fix/core-version">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="newer-state">
+      <h2>State snapshot was created by a newer Terraform</h2>
+      <pre class="err"><code>Error: Error loading state: state snapshot was created by Terraform v1.10.5, which is newer than current v1.9.8; upgrade to Terraform v1.10.5 or greater to work with this state</code></pre>
+      <p>Someone (often CI) wrote the state with a newer CLI; older ones refuse to read it.</p>
+      <h3>Likely causes</h3>
+      <ul><li>CI upgraded Terraform before laptops did</li><li>A teammate on a newer version applied</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform version
+terraform state pull | grep terraform_version</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Upgrade your CLI to that version or later</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>One pinned version per repository for people and CI</li></ul>
+      <p>Practise it: <a href="./#play/newerstate">State written by a newer Terraform</a> · <a href="./#fix/newer-state">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="module-not-installed">
+      <h2>Module not installed</h2>
+      <pre class="err"><code>Error: Module not installed
+
+This module is not yet installed. Run &quot;terraform init&quot; to install all
+modules required by this configuration.</code></pre>
+      <p>A module block was added or its source changed since the last init.</p>
+      <h3>Likely causes</h3>
+      <ul><li>New module call</li><li>Changed source address</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>ls .terraform/modules</code></pre>
+      <h3>Fix</h3>
+      <ol><li>terraform init</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Run init after pulling changes that touch module blocks</li></ul>
+      <p>Practise it: <a href="./#play/modoutput">Module output that does not exist</a> · <a href="./#fix/module-not-installed">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="module-version">
+      <h2>Module version requirements have changed</h2>
+      <pre class="err"><code>Error: Module version requirements have changed
+
+The version requirements have changed since this module was installed and
+the installed version (3.0.0) is no longer acceptable.</code></pre>
+      <p>The module's version argument no longer matches what init downloaded.</p>
+      <h3>Likely causes</h3>
+      <ul><li>You pinned or changed version</li><li>An unpinned module was upgraded by init -upgrade</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>cat .terraform/modules/modules.json
+grep -n version main.tf</code></pre>
+      <h3>Fix</h3>
+      <ol><li>terraform init (or init -upgrade)</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Always set version on registry modules</li></ul>
+      <p>Practise it: <a href="./#play/modpin">Unpinned module upgraded itself</a> · <a href="./#fix/module-version">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="credentials">
+      <h2>No valid credential sources found</h2>
+      <pre class="err"><code>Error: No valid credential sources found
+
+Please see https://registry.terraform.io/providers/hashicorp/aws
+for more information about providing credentials.</code></pre>
+      <p>The AWS provider found no credentials in its chain: environment, profile, SSO or instance role.</p>
+      <h3>Likely causes</h3>
+      <ul><li>AWS_PROFILE not set</li><li>Expired SSO session</li><li>CI role not configured (OIDC)</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>aws sts get-caller-identity
+env | grep AWS</code></pre>
+      <h3>Fix</h3>
+      <ol><li>export AWS_PROFILE=&lt;profile&gt; or aws sso login; in CI use an OIDC role</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Never put access_key or secret_key in provider blocks</li></ul>
+      <p>Practise it: <a href="./#play/credentials">No valid credential sources found</a> · <a href="./#fix/credentials">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="unsupported-argument">
+      <h2>Unsupported argument</h2>
+      <pre class="err"><code>Error: Unsupported argument
+
+An argument named &quot;instance_typ&quot; is not expected here. Did you mean
+&quot;instance_type&quot;?</code></pre>
+      <p>The argument is not in the resource's (or module's) schema.</p>
+      <h3>Likely causes</h3>
+      <ul><li>A typo</li><li>An argument removed or renamed in a newer provider or module version</li><li>A module input that the installed version does not declare</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform validate
+cat .terraform/modules/&lt;name&gt;/variables.tf</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Fix the name; for modules, pin the version the code was written for</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>terraform validate in CI and in your editor</li></ul>
+      <p>Practise it: <a href="./#play/unsupported">Unsupported argument</a>, <a href="./#play/modpin">Unpinned module upgraded itself</a>, <a href="./#play/awsv5upgrade">AWS provider major upgrade</a> · <a href="./#fix/unsupported-argument">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="unsupported-block">
+      <h2>Unsupported block type</h2>
+      <pre class="err"><code>Error: Unsupported block type
+
+Blocks of type &quot;ingres&quot; are not expected here. Did you mean &quot;ingress&quot;?</code></pre>
+      <p>A nested or top-level block name that the schema does not define.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Typo</li><li>Writing an argument as a block (tags { } instead of tags = { })</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform validate</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Use the block or argument form the documentation shows</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>terraform fmt and validate before pushing</li></ul>
+      <p>Practise it: <a href="./#play/unsupported">Unsupported argument</a> · <a href="./#fix/unsupported-block">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="missing-argument">
+      <h2>Missing required argument</h2>
+      <pre class="err"><code>Error: Missing required argument
+
+The argument &quot;ami&quot; is required, but no definition was found.</code></pre>
+      <p>A required argument (or a module variable without a default) has no value.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Forgotten argument</li><li>Module upgrade added a required input</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform validate</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Set the argument</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Read module changelogs before upgrading</li></ul>
+      <p>Practise it: <a href="./#play/modpin">Unpinned module upgraded itself</a> · <a href="./#fix/missing-argument">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="invalid-reference">
+      <h2>Invalid reference</h2>
+      <pre class="err"><code>Error: Invalid reference
+
+A reference to a resource type must be followed by at least one attribute
+access, specifying the resource name.</code></pre>
+      <p>A bare word was used where a reference needs a namespace: Terraform read it as a resource type.</p>
+      <h3>Likely causes</h3>
+      <ul><li>env instead of var.env</li><li>${name} inside a string without var.</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform validate</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Use var.&lt;name&gt;, local.&lt;name&gt;, module.&lt;name&gt;.&lt;output&gt; or &lt;type&gt;.&lt;name&gt;.&lt;attr&gt;</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Editor support for HCL highlights undeclared names</li></ul>
+      <p>Practise it: <a href="./#play/invalidref">Invalid reference</a> · <a href="./#fix/invalid-reference">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="undeclared-resource">
+      <h2>Reference to undeclared resource</h2>
+      <pre class="err"><code>Error: Reference to undeclared resource
+
+A managed resource &quot;aws_security_group&quot; &quot;web_sg&quot; has not been declared in
+the root module.</code></pre>
+      <p>The reference names a resource that this module does not declare.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Renamed resource</li><li>Resource lives in another module (use its output)</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>grep -rn 'resource &quot;aws_security_group&quot;' .</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Fix the name, or expose it as a module output</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Rename with moved blocks and update references in the same change</li></ul>
+      <p>Practise it: <a href="./#play/invalidref">Invalid reference</a>, <a href="./#play/modoutput">Module output that does not exist</a> · <a href="./#fix/undeclared-resource">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="undeclared-variable">
+      <h2>Reference to undeclared input variable</h2>
+      <pre class="err"><code>Error: Reference to undeclared input variable
+
+An input variable with the name &quot;region&quot; has not been declared.</code></pre>
+      <p>var.&lt;name&gt; is used but no variable block declares it in this module.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Missing variable block</li><li>Variable declared in a different module</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>grep -rn 'variable &quot;' .</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Add variable &quot;&lt;name&gt;&quot; {} or pass it from the parent</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Keep variables.tf next to the code that uses them</li></ul>
+      <p>Practise it: <a href="./#play/invalidref">Invalid reference</a> · <a href="./#fix/undeclared-variable">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="unsupported-attribute">
+      <h2>Unsupported attribute</h2>
+      <pre class="err"><code>Error: Unsupported attribute
+
+This object does not have an attribute named &quot;subnet_id&quot;.</code></pre>
+      <p>The object (a module, resource or map) has no such attribute.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Module output not declared</li><li>Typo in an exported attribute</li><li>A list where you expected one object</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>cat modules/&lt;name&gt;/outputs.tf
+terraform console</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Use the declared output (index lists), or add the output</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Document module outputs</li></ul>
+      <p>Practise it: <a href="./#play/modoutput">Module output that does not exist</a> · <a href="./#fix/unsupported-attribute">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="missing-instance-key">
+      <h2>Missing resource instance key</h2>
+      <pre class="err"><code>Error: Missing resource instance key
+
+Because aws_instance.bastion has &quot;count&quot; set, its attributes must be
+accessed on specific instances.</code></pre>
+      <p>A resource with count or for_each is a collection; its attributes need an index or a splat.</p>
+      <h3>Likely causes</h3>
+      <ul><li>count added to make a resource optional</li><li>Converted to for_each</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform validate</code></pre>
+      <h3>Fix</h3>
+      <ol><li>aws_instance.x[0].attr, aws_instance.x[*].attr, or one(aws_instance.x[*].attr)</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Use one() for optional single resources</li></ul>
+      <p>Practise it: <a href="./#play/instancekey">Missing resource instance key</a> · <a href="./#fix/missing-instance-key">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="cycle">
+      <h2>Cycle</h2>
+      <pre class="err"><code>Error: Cycle: aws_security_group.db, aws_security_group.app</code></pre>
+      <p>References form a loop, so there is no order to create the objects in.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Two security groups with inline rules pointing at each other</li><li>depends_on that closes a loop</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform graph</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Create the objects first, then link them with separate resources (aws_vpc_security_group_ingress_rule/egress_rule)</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Prefer standalone rule resources to inline blocks</li></ul>
+      <p>Practise it: <a href="./#play/cycle">Dependency cycle</a> · <a href="./#fix/cycle">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="invalid-for-each">
+      <h2>Invalid for_each argument</h2>
+      <pre class="err"><code>Error: Invalid for_each argument
+
+The &quot;for_each&quot; set includes values derived from resource attributes that
+cannot be determined until apply</code></pre>
+      <p>for_each keys must be known at plan time; IDs created in the same apply are not. A list (tuple) is also rejected: for_each needs a map or set of strings.</p>
+      <h3>Likely causes</h3>
+      <ul><li>for_each = toset(aws_subnet.x[*].id)</li><li>for_each = var.list without toset()</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform plan</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Key by names written in code; keep IDs in the values</li><li>Wrap lists in toset()</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Plan from an empty workspace in CI to catch it early</li></ul>
+      <p>Practise it: <a href="./#play/foreachunknown">for_each over values known after apply</a>, <a href="./#play/countshift">count deletes the wrong runner</a> · <a href="./#fix/invalid-for-each">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="invalid-count">
+      <h2>Invalid count argument</h2>
+      <pre class="err"><code>Error: Invalid count argument
+
+The &quot;count&quot; value depends on resource attributes that cannot be determined
+until apply</code></pre>
+      <p>count must be known at plan time.</p>
+      <h3>Likely causes</h3>
+      <ul><li>count = length(&lt;something created in this apply&gt;)</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform plan</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Derive count from variables or locals</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Keep counts static</li></ul>
+      <p>Practise it: <a href="./#play/foreachunknown">for_each over values known after apply</a> · <a href="./#fix/invalid-count">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="provider-not-present">
+      <h2>Provider configuration not present</h2>
+      <pre class="err"><code>Error: Provider configuration not present
+
+To work with aws_acm_certificate.shop its original provider configuration at
+provider[&quot;registry.terraform.io/hashicorp/aws&quot;].us_east_1 is required</code></pre>
+      <p>A resource (or the state) refers to a provider alias that no provider block declares.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Alias removed or misspelled</li><li>Module expects a provider passed in</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>grep -rn alias *.tf</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Declare provider &quot;aws&quot; { alias = &quot;us_east_1&quot; ... }</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Remove aliases only after the resources using them are gone</li></ul>
+      <p>Practise it: <a href="./#play/provalias">Certificate in the wrong region</a> · <a href="./#fix/provider-not-present">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="no-value-variable">
+      <h2>No value for required variable</h2>
+      <pre class="err"><code>Error: No value for required variable
+
+The root module input variable &quot;environment&quot; is not set, and has no default
+value.</code></pre>
+      <p>A variable without a default got no value, and -input=false (CI) stops Terraform from asking.</p>
+      <h3>Likely causes</h3>
+      <ul><li>terraform.tfvars is gitignored, so CI never sees it</li><li>Missing TF_VAR_ in the pipeline</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>cat .gitignore
+env | grep TF_VAR</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Set TF_VAR_&lt;name&gt; in the workflow, or pass -var / -var-file explicitly</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Run CI exactly as people do: same files, -input=false</li></ul>
+      <p>Practise it: <a href="./#play/varci">Variable not set in CI</a> · <a href="./#fix/no-value-variable">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="invalid-variable">
+      <h2>Invalid value for variable</h2>
+      <pre class="err"><code>Error: Invalid value for variable
+
+environment must be dev, staging or prod.</code></pre>
+      <p>A validation block rejected the value.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Typo or alias (production for prod)</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>env | grep TF_VAR
+cat variables.tf</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Pass a valid value</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Keep validation rules; they catch exactly this</li></ul>
+      <p>Practise it: <a href="./#play/validation">Invalid value for variable</a> · <a href="./#fix/invalid-variable">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="sensitive-output">
+      <h2>Output refers to sensitive values</h2>
+      <pre class="err"><code>Error: Output refers to sensitive values
+
+To reduce the risk of accidentally exporting sensitive data that was
+intended to be only internal, Terraform requires that any root module
+output containing sensitive data be explicitly marked as sensitive</code></pre>
+      <p>An output contains a sensitive value and is not marked sensitive.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Building a URL or string from a sensitive variable</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform plan</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Add sensitive = true to the output; read it with terraform output -raw</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Do not remove sensitive from variables to silence it</li></ul>
+      <p>Practise it: <a href="./#play/sensitiveout">Output refers to sensitive values</a> · <a href="./#fix/sensitive-output">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="no-outputs">
+      <h2>No outputs found</h2>
+      <pre class="err"><code>Warning: No outputs found
+
+The state file either has no outputs defined, or all the defined outputs
+are empty.</code></pre>
+      <p>terraform output reads state, and no apply has saved the outputs yet.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Output added after the last apply</li><li>Wrong workspace or backend</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform plan   # Changes to Outputs
+terraform workspace show</code></pre>
+      <h3>Fix</h3>
+      <ol><li>terraform apply (or apply -refresh-only)</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Apply after adding outputs</li></ul>
+      <p>Practise it: <a href="./#play/outputmissing">No outputs found</a> · <a href="./#fix/no-outputs">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="fmt-check">
+      <h2>terraform fmt -check exits with code 3</h2>
+      <pre class="err"><code>terraform fmt -check -recursive
+main.tf
+Error: Process completed with exit code 3.</code></pre>
+      <p>fmt -check lists files that are not in canonical style and fails.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Hand-indented code</li><li>Misaligned =</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform fmt -check -diff</code></pre>
+      <h3>Fix</h3>
+      <ol><li>terraform fmt -recursive and commit</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Format on save, or a pre-commit hook</li></ul>
+      <p>Practise it: <a href="./#play/fmtcheck">CI fails on terraform fmt</a> · <a href="./#fix/fmt-check">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="state-lock">
+      <h2>Error acquiring the state lock</h2>
+      <pre class="err"><code>Error: Error acquiring the state lock
+
+Error message: ConditionalCheckFailedException: The conditional request failed
+Lock Info:
+  ID:        b7d1e9a2-5c3f-4e8b-a1d6-0f2c9e4b7a35
+  Operation: OperationTypeApply
+  Who:       runner@fv-az1279-614</code></pre>
+      <p>Another run holds the state lock, or a crashed run left it behind.</p>
+      <h3>Likely causes</h3>
+      <ul><li>A colleague or pipeline is applying right now</li><li>A CI job was killed mid-apply</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>Check the Who and Created fields; is that job still running?
+aws dynamodb scan --table-name tf-locks</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Wait if it is running</li><li>If its owner is gone: terraform force-unlock &lt;LOCK_ID&gt;</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Let CI jobs finish or time out cleanly; avoid -lock=false</li></ul>
+      <p>Practise it: <a href="./#play/lockstuck">State lock stuck after a crashed CI job</a> · <a href="./#fix/state-lock">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="backend-init">
+      <h2>Backend initialization required</h2>
+      <pre class="err"><code>Error: Backend initialization required, please run &quot;terraform init&quot;
+
+Reason: Initial configuration of the requested backend &quot;s3&quot;</code></pre>
+      <p>The backend block differs from what this directory was initialised with.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Backend block added or changed</li><li>Fresh checkout</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>git diff -- '*.tf'</code></pre>
+      <h3>Fix</h3>
+      <ol><li>terraform init -migrate-state to move existing state; -reconfigure only when no state should move</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Change backends in a dedicated change with a migration plan</li></ul>
+      <p>Practise it: <a href="./#play/backendmigrate">Move state to an S3 backend</a>, <a href="./#play/nolock">Backend without locking</a> · <a href="./#fix/backend-init">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="backend-changed">
+      <h2>Backend configuration changed</h2>
+      <pre class="err"><code>Error: Backend configuration changed
+
+A change in the backend configuration has been detected, which may require
+migrating existing state.</code></pre>
+      <p>Init needs to know whether to move the state.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Bucket, key or locking settings changed</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>git diff -- versions.tf</code></pre>
+      <h3>Fix</h3>
+      <ol><li>-migrate-state if the location changed; -reconfigure if the state stays put (for example, adding locking)</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Review backend diffs carefully</li></ul>
+      <p>Practise it: <a href="./#play/nolock">Backend without locking</a> · <a href="./#fix/backend-changed">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="backend-bucket">
+      <h2>S3 bucket does not exist (backend)</h2>
+      <pre class="err"><code>Error: Failed to get existing workspaces: S3 bucket &quot;quest-tf-state&quot; does not exist.</code></pre>
+      <p>The backend points at a bucket that does not exist in this account.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Typo in bucket</li><li>Wrong AWS account or profile</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>aws s3 ls
+aws sts get-caller-identity</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Fix the bucket name or credentials, then terraform init</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Never create a new bucket to make the error go away: you would start from empty state</li></ul>
+      <p>Practise it: <a href="./#play/backendbucket">Backend bucket does not exist</a> · <a href="./#fix/backend-bucket">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="stale-plan">
+      <h2>Saved plan is stale</h2>
+      <pre class="err"><code>Error: Saved plan is stale
+
+The given plan file can no longer be applied because the state was changed
+by another operation after the plan was created.</code></pre>
+      <p>State changed after the plan file was made.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Another apply ran between plan and apply</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform show tfplan</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Plan again with -out, review, apply that file</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Plan and apply in one pipeline run</li></ul>
+      <p>Practise it: <a href="./#play/staleplan">Saved plan is stale</a> · <a href="./#fix/stale-plan">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="import-missing">
+      <h2>Cannot import non-existent remote object</h2>
+      <pre class="err"><code>Error: Cannot import non-existent remote object
+
+While attempting to import an existing object to &quot;aws_s3_bucket.assets&quot;,
+the provider detected that no object exists with the given id.</code></pre>
+      <p>The ID given to import does not exist in this account and region.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Wrong ID format for the resource type</li><li>Wrong region or account</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>aws s3 ls
+Check the resource docs' Import section for the ID format</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Use the correct ID</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Prefer import blocks, reviewed in a plan</li></ul>
+      <p>Practise it: <a href="./#play/import">Importing an existing bucket</a> · <a href="./#fix/import-missing">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="already-managed">
+      <h2>Resource already managed by Terraform</h2>
+      <pre class="err"><code>Error: Resource already managed by Terraform
+
+Terraform is already managing a remote object for aws_s3_bucket.assets.</code></pre>
+      <p>The address already has an object in state.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Import run twice</li><li>Wrong address</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform state show &lt;addr&gt;</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Use another address, or terraform state rm first if the state is wrong</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Check terraform state list before importing</li></ul>
+      <p>Practise it: <a href="./#play/import">Importing an existing bucket</a> · <a href="./#fix/already-managed">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="workspace-missing">
+      <h2>Workspace doesn't exist</h2>
+      <pre class="err"><code>Workspace &quot;staging&quot; doesn't exist.
+
+You can create this workspace with the &quot;new&quot; subcommand
+or include the &quot;-or-create&quot; flag with the &quot;select&quot; subcommand.</code></pre>
+      <p>No state exists under that workspace name in this backend.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Typo</li><li>Different backend</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform workspace list</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Select an existing workspace, or create it on purpose</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Show the workspace in your prompt</li></ul>
+      <p>Practise it: <a href="./#play/workspace">Wrong workspace selected</a> · <a href="./#fix/workspace-missing">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="forces-replacement">
+      <h2>Plan shows -/+ … # forces replacement</h2>
+      <pre class="err"><code>-/+ resource &quot;aws_db_instance&quot; &quot;orders&quot; {
+      ~ identifier = &quot;orders-db&quot; -&gt; &quot;orders-db-prod&quot; # forces replacement</code></pre>
+      <p>An argument that cannot change in place changed, so Terraform will destroy and recreate the object.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Renamed identifier, name or AZ</li><li>Changed AMI or user_data</li><li>Value became unknown (module depends_on)</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform plan | grep -B3 'forces replacement'</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Revert the argument, or plan a migration (snapshot, create_before_destroy where possible)</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>lifecycle { prevent_destroy = true } and deletion_protection on stateful resources</li></ul>
+      <p>Practise it: <a href="./#play/dbreplace">A rename that replaces the database</a>, <a href="./#play/cbd">DependencyViolation on replace</a>, <a href="./#play/dependson">depends_on replaces the app server</a> · <a href="./#fix/forces-replacement">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="prevent-destroy">
+      <h2>Instance cannot be destroyed</h2>
+      <pre class="err"><code>Error: Instance cannot be destroyed
+
+Resource aws_db_instance.orders has lifecycle.prevent_destroy set, but the
+plan calls for this resource to be destroyed.</code></pre>
+      <p>Your guard worked: the plan would destroy a protected resource.</p>
+      <h3>Likely causes</h3>
+      <ul><li>A change that forces replacement</li><li>Resource removed from code</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform plan</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Undo the change that forces replacement; remove the guard only for a deliberate, reviewed teardown</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Keep prevent_destroy on data stores</li></ul>
+      <p>Practise it: <a href="./#play/dbreplace">A rename that replaces the database</a> · <a href="./#fix/prevent-destroy">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="drift">
+      <h2>Objects have changed outside of Terraform</h2>
+      <pre class="err"><code>Note: Objects have changed outside of Terraform
+
+Terraform detected the following changes made outside of Terraform since the
+last &quot;terraform apply&quot;</code></pre>
+      <p>Refresh found real objects different from state. The plan will undo the change unless the code matches it.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Console edits</li><li>Autoscalers and other tools owning an attribute</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform plan -refresh-only</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Apply to undo unwanted changes; update code or ignore_changes for wanted ones</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Read-only console access; one owner per attribute</li></ul>
+      <p>Practise it: <a href="./#play/drift">Drift from a console change</a>, <a href="./#play/ignorechanges">Every apply resets the autoscaler</a> · <a href="./#fix/drift">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="count-shift">
+      <h2>Removing one list item changes or destroys others</h2>
+      <pre class="err"><code>  # aws_instance.runner[0] will be updated in-place
+  # aws_instance.runner[2] will be destroyed
+  # (because index [2] is out of range for count)</code></pre>
+      <p>count addresses by position; removing an item shifts every index after it.</p>
+      <h3>Likely causes</h3>
+      <ul><li>count = length(list) for named things</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform plan
+terraform state list</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Switch to for_each with stable keys and move state with moved blocks or terraform state mv</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>for_each for anything with an identity</li></ul>
+      <p>Practise it: <a href="./#play/countshift">count deletes the wrong runner</a> · <a href="./#fix/count-shift">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="renamed-resource">
+      <h2>Renamed resource plans destroy and create</h2>
+      <pre class="err"><code>  # aws_instance.web will be destroyed
+  # (because aws_instance.web is not in configuration)
+  # aws_instance.app will be created</code></pre>
+      <p>The address changed, and Terraform tracks objects by address.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Renamed resource</li><li>Moved into a module</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform plan</code></pre>
+      <h3>Fix</h3>
+      <ol><li>moved { from = ... to = ... } or terraform state mv</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Add moved blocks in the same pull request as the rename</li></ul>
+      <p>Practise it: <a href="./#play/moved">Moved block after a rename</a> · <a href="./#fix/renamed-resource">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="known-after-apply">
+      <h2>Data source read during apply causes replacement</h2>
+      <pre class="err"><code>  # module.app.data.aws_ami.base will be read during apply
+  # (depends on a resource or a module with changes pending)</code></pre>
+      <p>depends_on (often on a module) defers data sources until apply, making their results unknown, which can force replacements.</p>
+      <h3>Likely causes</h3>
+      <ul><li>depends_on = [module.x] on a module or data source</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform plan | grep 'read during apply'</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Remove depends_on and pass real values (references) instead</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Use depends_on only for hidden dependencies</li></ul>
+      <p>Practise it: <a href="./#play/dependson">depends_on replaces the app server</a> · <a href="./#fix/known-after-apply">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="targeting">
+      <h2>Resource targeting is in effect</h2>
+      <pre class="err"><code>Warning: Resource targeting is in effect
+
+You are creating a plan with the -target option, which means that the
+result of this plan may not represent all of the changes requested</code></pre>
+      <p>Only part of the configuration was planned; everything else waits silently.</p>
+      <h3>Likely causes</h3>
+      <ul><li>-target used to ship quickly</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform plan   # without -target</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Plan and apply without -target</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Reserve -target for recovery</li></ul>
+      <p>Practise it: <a href="./#play/target">-target left changes behind</a> · <a href="./#fix/targeting">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="dependency-violation">
+      <h2>DependencyViolation when deleting a security group</h2>
+      <pre class="err"><code>Error: deleting Security Group (sg-0a1b2c3d4e5f60718): DependencyViolation: resource sg-0a1b2c3d4e5f60718 has a dependent object</code></pre>
+      <p>AWS will not delete a group while instances, ENIs or rules still use it; Terraform destroys before it creates by default.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Replacement of a group in use</li><li>Leftover ENIs (Lambda, load balancers)</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>aws ec2 describe-network-interfaces --filters Name=group-id,Values=&lt;sg&gt;</code></pre>
+      <h3>Fix</h3>
+      <ol><li>lifecycle { create_before_destroy = true } with name_prefix</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Use name_prefix and create_before_destroy for security groups</li></ul>
+      <p>Practise it: <a href="./#play/cbd">DependencyViolation on replace</a> · <a href="./#fix/dependency-violation">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="duplicate-group">
+      <h2>InvalidGroup.Duplicate</h2>
+      <pre class="err"><code>Error: creating Security Group (web): InvalidGroup.Duplicate: The security group 'web' already exists for VPC 'vpc-0a1b2c3d4e5f60718'</code></pre>
+      <p>Names must be unique per VPC; the old group still exists.</p>
+      <h3>Likely causes</h3>
+      <ul><li>create_before_destroy with a fixed name</li><li>A hand-made group with the same name</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>aws ec2 describe-security-groups --filters Name=group-name,Values=web</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Use name_prefix, or import the existing group</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>name_prefix for replaceable resources</li></ul>
+      <p>Practise it: <a href="./#play/cbd">DependencyViolation on replace</a> · <a href="./#fix/duplicate-group">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="bucket-exists">
+      <h2>BucketAlreadyOwnedByYou / BucketAlreadyExists</h2>
+      <pre class="err"><code>Error: creating S3 Bucket (quest-assets-2026): BucketAlreadyOwnedByYou: Your previous request to create the named bucket succeeded and you already own it.</code></pre>
+      <p>The bucket exists already: in your account (OwnedByYou) or someone else's (AlreadyExists; names are global).</p>
+      <h3>Likely causes</h3>
+      <ul><li>Bucket made by hand or by another configuration</li><li>State lost or not migrated</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>aws s3 ls
+terraform state list</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Import it (OwnedByYou), or choose another name (AlreadyExists)</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Import blocks for existing objects; keep state safe</li></ul>
+      <p>Practise it: <a href="./#play/import">Importing an existing bucket</a>, <a href="./#play/backendmigrate">Move state to an S3 backend</a> · <a href="./#fix/bucket-exists">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="bucket-not-empty">
+      <h2>BucketNotEmpty</h2>
+      <pre class="err"><code>Error: deleting S3 Bucket (quest-archive-2019): BucketNotEmpty: The bucket you tried to delete is not empty</code></pre>
+      <p>S3 refuses to delete a bucket with objects unless force_destroy is set.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Destroying or removing a bucket that holds data</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>aws s3 ls s3://&lt;bucket&gt;</code></pre>
+      <h3>Fix</h3>
+      <ol><li>If the data must stay: removed block with destroy = false or terraform state rm. Only empty it if you mean to delete it.</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Avoid force_destroy on buckets that hold data</li></ul>
+      <p>Practise it: <a href="./#play/removed">Stop managing without destroying</a> · <a href="./#fix/bucket-not-empty">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="deletion-protection">
+      <h2>Cannot delete protected DB Instance</h2>
+      <pre class="err"><code>Error: deleting RDS DB Instance (loadtest-db): InvalidParameterCombination: Cannot delete protected DB Instance, please disable deletion protection and try again.</code></pre>
+      <p>deletion_protection is on; AWS refuses the delete.</p>
+      <h3>Likely causes</h3>
+      <ul><li>terraform destroy of an environment with a protected database</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>aws rds describe-db-instances</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Set deletion_protection = false, apply, then destroy</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Keep it on in production; never state rm to get around it</li></ul>
+      <p>Practise it: <a href="./#play/teardown">Destroy stops at the database</a> · <a href="./#fix/deletion-protection">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="acl-not-supported">
+      <h2>AccessControlListNotSupported</h2>
+      <pre class="err"><code>Error: creating S3 Bucket ACL (quest-partner-reports,public-read): AccessControlListNotSupported: The bucket does not allow ACLs</code></pre>
+      <p>New buckets enforce bucket-owner ownership, which disables ACLs.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Old tutorials using acl = &quot;public-read&quot;</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>aws s3api get-bucket-ownership-controls --bucket &lt;bucket&gt;</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Remove the ACL; grant access with a bucket policy or presigned URLs, and add a public access block</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Public access block on every bucket</li></ul>
+      <p>Practise it: <a href="./#play/publicbucket">Public bucket ACL rejected</a> · <a href="./#fix/acl-not-supported">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="viewer-certificate">
+      <h2>InvalidViewerCertificate (CloudFront)</h2>
+      <pre class="err"><code>Error: creating CloudFront Distribution: InvalidViewerCertificate: The specified SSL certificate doesn't exist, isn't in us-east-1 region, isn't valid, or doesn't include a valid certificate chain.</code></pre>
+      <p>CloudFront only accepts ACM certificates from us-east-1.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Certificate created with the default regional provider</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform state show aws_acm_certificate.&lt;name&gt;   # arn region</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Create it with an aliased us-east-1 provider</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>One aliased provider per extra region, passed explicitly</li></ul>
+      <p>Practise it: <a href="./#play/provalias">Certificate in the wrong region</a> · <a href="./#fix/viewer-certificate">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="data-not-found">
+      <h2>no matching EC2 VPC found</h2>
+      <pre class="err"><code>Error: no matching EC2 VPC found</code></pre>
+      <p>A data source filter matched nothing (or, with another message, more than one).</p>
+      <h3>Likely causes</h3>
+      <ul><li>Tag values differ per environment</li><li>Wrong region or account</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>aws ec2 describe-vpcs</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Match the real tags; narrow filters until exactly one object matches</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Tag consistently from code</li></ul>
+      <p>Practise it: <a href="./#play/datanotfound">Data source not found</a> · <a href="./#fix/data-not-found">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="throttling">
+      <h2>RequestLimitExceeded or Rate exceeded during apply</h2>
+      <pre class="err"><code>Error: creating EC2 Instance: operation error EC2: RunInstances, exceeded maximum number of attempts, 1, https response error StatusCode: 503, RequestID: ..., api error RequestLimitExceeded: Request limit exceeded.</code></pre>
+      <p>AWS throttled the API calls and the provider gave up retrying. Part of the apply succeeded; the rest is still to do.</p>
+      <h3>Likely causes</h3>
+      <ul><li>max_retries set very low in the provider block</li><li>A large apply at the default -parallelism=10</li><li>Other tools using the same account's API quota</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>grep -n max_retries *.tf
+terraform state list | wc -l</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Remove max_retries (default retries with backoff) or raise it</li><li>terraform apply -parallelism=3 for very large changes</li><li>Run apply again: completed resources are in state</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Keep provider retries at their default</li><li>Split very large states</li><li>Spread scheduled pipelines over time</li></ul>
+      <p>Practise it: <a href="./#play/throttling">API rate limit during apply</a> · <a href="./#fix/throttling">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="create-timeout">
+      <h2>timeout while waiting for state to become 'available'</h2>
+      <pre class="err"><code>Error: waiting for RDS DB Instance (warehouse-db) create: timeout while waiting for state to become 'available' (last state: 'creating', timeout: 40m0s)</code></pre>
+      <p>The API accepted the create, but the object was not ready within the provider's wait time. Terraform records it as tainted.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Restores from large snapshots</li><li>Big instances, Multi-AZ, encryption on large volumes</li><li>A slow region or a service incident</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>aws rds describe-db-instances   # is it available now?
+terraform state show &lt;addr&gt;   # tainted?</code></pre>
+      <h3>Fix</h3>
+      <ol><li>If the object is healthy: terraform untaint &lt;addr&gt;</li><li>Add a timeouts { create = &quot;120m&quot; } block for next time</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Set timeouts on slow resources</li><li>Read plans after a failed apply before applying again</li></ul>
+      <p>Practise it: <a href="./#play/timeouts">Timeout leaves a tainted database</a> · <a href="./#fix/create-timeout">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="tainted">
+      <h2>Plan says the resource is tainted, so must be replaced</h2>
+      <pre class="err"><code>  # aws_db_instance.warehouse is tainted, so must be replaced
+-/+ resource &quot;aws_db_instance&quot; &quot;warehouse&quot; {</code></pre>
+      <p>State marks the object as not fully created (a failed or timed-out create, a failed provisioner, or terraform taint), so the next apply replaces it.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Create timed out</li><li>Provisioner failed</li><li>Someone ran terraform taint</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform state show &lt;addr&gt;
+Check the real object in the console or CLI</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Healthy object: terraform untaint &lt;addr&gt;</li><li>Broken object: let the replacement happen, ideally with -replace for clarity</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Timeouts that fit the resource</li><li>Avoid provisioners</li></ul>
+      <p>Practise it: <a href="./#play/timeouts">Timeout leaves a tainted database</a>, <a href="./#play/taint">Replace a broken instance</a> · <a href="./#fix/tainted">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="empty-state">
+      <h2>Plan wants to create everything that already exists</h2>
+      <pre class="err"><code>Plan: 2 to add, 0 to change, 0 to destroy.
+(every resource shows &quot;will be created&quot;, but they all exist)</code></pre>
+      <p>Terraform is reading an empty or different state: wrong backend, bucket, key or workspace, or the state was overwritten.</p>
+      <h3>Likely causes</h3>
+      <ul><li>state push -force of an empty file</li><li>Wrong backend key or workspace</li><li>init -reconfigure instead of -migrate-state</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform workspace show
+terraform state list
+aws s3api list-object-versions --bucket &lt;bucket&gt; --prefix &lt;key&gt;</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Point at the right backend or workspace</li><li>Restore the last good version: aws s3api get-object ... --version-id &lt;id&gt; recovered.tfstate, then terraform state push -force recovered.tfstate</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Versioning on the state bucket</li><li>Never apply a plan that creates things you know exist</li></ul>
+      <p>Practise it: <a href="./#play/staterecover">Restore an overwritten state</a>, <a href="./#play/backendmigrate">Move state to an S3 backend</a>, <a href="./#play/backendbucket">Backend bucket does not exist</a> · <a href="./#fix/empty-state">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="state-push-serial">
+      <h2>cannot import state with serial … over newer state</h2>
+      <pre class="err"><code>Failed to write state: cannot import state with serial 2 over newer state with serial 3</code></pre>
+      <p>terraform state push refuses to replace a newer state (higher serial) or one with a different lineage.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Restoring an older version</li><li>Pushing a state from another configuration</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform state pull | grep -E 'serial|lineage'
+grep -E 'serial|lineage' &lt;file&gt;</code></pre>
+      <h3>Fix</h3>
+      <ol><li>If you are restoring on purpose and have checked the file: terraform state push -force &lt;file&gt;</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Use state push only for recovery, with a backup of the current state</li></ul>
+      <p>Practise it: <a href="./#play/staterecover">Restore an overwritten state</a> · <a href="./#fix/state-push-serial">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="deprecated-argument">
+      <h2>Warning: Argument is deprecated</h2>
+      <pre class="err"><code>Warning: Argument is deprecated
+
+  with aws_s3_bucket.reports,
+  on main.tf line 3, in resource &quot;aws_s3_bucket&quot; &quot;reports&quot;:
+   3:   acl    = &quot;private&quot;
+
+Use the aws_s3_bucket_acl resource instead</code></pre>
+      <p>The argument still works but will be removed in a future major version of the provider.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Code written for an older provider (S3 inline acl, versioning, lifecycle_rule)</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform validate
+Read the provider's upgrade guide</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Move to the replacement resource or argument, checking the plan shows no replacement</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Fix deprecations before each provider major upgrade</li></ul>
+      <p>Practise it: <a href="./#play/awsv5upgrade">AWS provider major upgrade</a> · <a href="./#fix/deprecated-argument">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="test-assertion">
+      <h2>Test assertion failed (terraform test)</h2>
+      <pre class="err"><code>Error: Test assertion failed
+
+  on tests/naming.tftest.hcl line 10, in run &quot;bucket_name_has_environment&quot;:
+  10:     condition     = aws_s3_bucket.logs.bucket == &quot;quest-logs-dev&quot;
+
+The logs bucket name must end with the environment.</code></pre>
+      <p>A run block's assert condition was false for the planned (or applied) values.</p>
+      <h3>Likely causes</h3>
+      <ul><li>A code change broke a convention the test encodes</li><li>The test's variables no longer match the module</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform test -verbose
+terraform console   # evaluate the expression</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Fix the code; change the test only when the rule itself changed, in a reviewed change</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Run terraform test in CI on every pull request</li></ul>
+      <p>Practise it: <a href="./#play/tftest">terraform test fails</a> · <a href="./#fix/test-assertion">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="perpetual-diff">
+      <h2>The plan always shows the same change</h2>
+      <pre class="err"><code>  # aws_security_group.db will be updated in-place
+  ~ resource &quot;aws_security_group&quot; &quot;db&quot; {
+      - ingress {
+          - from_port   = 9187 -&gt; null</code></pre>
+      <p>Two owners manage the same thing, or a value never matches what the provider reads back, so every apply undoes the other.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Inline security group rules mixed with aws_vpc_security_group_*_rule resources</li><li>An autoscaler or other tool owning an attribute</li><li>depends_on deferring data sources</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>terraform plan twice, with an apply between
+grep -rn 'security_group_id' *.tf</code></pre>
+      <h3>Fix</h3>
+      <ol><li>One owner per thing: all inline or all separate rules; ignore_changes for attributes another system manages</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Agree on one style per resource type across teams</li></ul>
+      <p>Practise it: <a href="./#play/perpetualdiff">A plan that never settles</a>, <a href="./#play/ignorechanges">Every apply resets the autoscaler</a>, <a href="./#play/dependson">depends_on replaces the app server</a> · <a href="./#fix/perpetual-diff">Open interactive</a></p>
+    </section>
+    <section class="card problem" id="duplicate-permission">
+      <h2>InvalidPermission.Duplicate</h2>
+      <pre class="err"><code>Error: creating VPC Security Group Ingress Rule: InvalidPermission.Duplicate: the specified rule &quot;peer: 10.0.1.0/24, TCP, from port: 5432, to port: 5432, ALLOW&quot; already exists</code></pre>
+      <p>The rule already exists on the group, often as an inline rule or one added by hand.</p>
+      <h3>Likely causes</h3>
+      <ul><li>Moving inline rules to separate resources without importing them</li><li>A rule created in the console</li></ul>
+      <h3>Confirm</h3>
+      <pre><code>aws ec2 describe-security-group-rules --filters Name=group-id,Values=&lt;sg&gt;</code></pre>
+      <h3>Fix</h3>
+      <ol><li>Import the existing rule by its sgr- ID, or remove the duplicate first</li></ol>
+      <h3>Prevent it</h3>
+      <ul><li>Do not mix inline and standalone rules</li></ul>
+      <p>Practise it: <a href="./#play/perpetualdiff">A plan that never settles</a> · <a href="./#fix/duplicate-permission">Open interactive</a></p>
+    </section>
+  </main>
+  <footer class="foot">
+    <div class="wrap foot-base">
+      <p>© 2024–2026 Sandeep Komal Pothu and contributors. Open source under the MIT License. No trackers, no cookies.</p>
+      <p class="foot-tm">Terraform® and HashiCorp® are trademarks of HashiCorp, Inc. This project is independent and not affiliated with HashiCorp.</p>
+    </div>
+  </footer>
+</body>
+</html>

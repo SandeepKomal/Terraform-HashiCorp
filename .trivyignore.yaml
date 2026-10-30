@@ -1,0 +1,33 @@
+# Findings that are the point of a teaching example. Each entry names the file
+# it applies to and why; everything else must pass the scan.
+misconfigurations:
+  - id: AWS-0053
+    paths:
+      - "ECS/alb.tf"
+      - "ECS-EC2/alb.tf"
+      - "tf-alb/alb.tf"
+      - "tf-nlb/nlb.tf"
+    statement: These examples build the public entry point of a web app; a load balancer that is internet-facing is what they demonstrate.
+  - id: AWS-0054
+    paths:
+      - "ECS/alb.tf"
+      - "ECS-EC2/alb.tf"
+      - "tf-alb/alb.tf"
+    statement: The examples run without a domain or ACM certificate, so they listen on HTTP; add an HTTPS listener with a certificate before real use.
+  - id: AWS-0104
+    paths:
+      - "ECS/security.tf"
+      - "ECS-EC2/service.tf"
+      - "ECS-EC2/sg.tf"
+      - "tf-sg/sg.tf"
+      - "tf-sg/sg.yaml"
+      - "tf-ud/ud.tf"
+    statement: Egress is limited to HTTPS for image pulls, package updates and AWS APIs, which have no fixed address list; use VPC endpoints or a proxy to narrow it further.
+  - id: AWS-0164
+    paths:
+      - "tf-vpc/vpc.tf"
+    statement: The two public subnets of the VPC example are public on purpose; its private subnets do not assign public IPs.
+  - id: AWS-0040
+    paths:
+      - "tf-k8s/k8s.tf"
+    statement: The public API endpoint lets you run kubectl from your workstation; it is limited to public_access_cidrs, which may not be 0.0.0.0/0.
