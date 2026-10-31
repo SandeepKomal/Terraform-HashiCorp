@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Terraform">
-  <rect width="64" height="64" rx="16" fill="#8b36d6"/>
-  <path d="M15 21h6M18 18v6" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
-  <rect x="26" y="18.5" width="23" height="5" rx="2.5" fill="#fff"/>
-  <path d="M15.5 32h5" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7"/>
-  <rect x="26" y="29.5" width="16" height="5" rx="2.5" fill="#fff" opacity=".7"/>
-  <path d="M15 43h6" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".45"/>
-  <rect x="26" y="40.5" width="20" height="5" rx="2.5" fill="#fff" opacity=".45"/>
-</svg>
