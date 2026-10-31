@@ -125,9 +125,9 @@
     const tiles = [
       ["#play/noinit", "Playground", "init, plan, apply, state, import.", "Locked state, drift, replacements you did not expect, version conflicts.", "wide"],
       ["#xray", "HCL X-ray", "Every block, explained.", "Paste a .tf file: what each line does, and the risky defaults flagged.", "wide"],
-      ["#doctor", "Troubleshoot", "Error to fix.", `${Q.problems.length} errors, each with cause, fix and prevention.`],
       ["#quiz", "Quiz", "State is everything.", "Questions with the reasoning."],
-      ["#arch", "How apply works", "Core, providers, state.", "Who talks to whom on apply."]
+      ["#arch", "How apply works", "Core, providers, state.", "Who talks to whom on apply."],
+      ["#doctor", "Stuck on an error?", "Learn why it happens, then practise the fix.", `${Q.problems.length} errors, each with cause, fix and prevention.`]
     ];
     $("#bento").replaceChildren(...tiles.map(([href, k, title, text, size]) => h("a.tile" + (size ? "." + size : ""), { href },
       h("div", null, h("div.k", null, k), h("h3", null, title)), h("p", null, text))));
@@ -415,14 +415,18 @@
     $("#doctor-out").replaceChildren(h("article.card.problem", { id: "problem-" + d.id },
       h("div.problem-head", null, h("h3", null, d.title), copy),
       h("pre.err", null, h("code", null, d.error)),
-      h("p", null, ...rich(d.meaning)),
+      h("h4", null, "Why it happens"), h("p", null, ...rich(d.meaning)),
       h("h4", null, "Likely causes"), list("ul", d.causes),
       h("h4", null, "Confirm"), h("pre", null, h("code", null, d.confirm.join("\n"))),
       h("h4", null, "Fix"), list("ol", d.fix),
       h("h4", null, "Prevent it"), list("ul", d.prevent),
-      h("div.doctor-practise", null, h("span.muted.small", null, "Practise it:"),
-        d.practise.filter((id) => names[id]).map((id) => h("button.chip", { type: "button", onclick: () => practise(id) }, names[id]))),
-      lv ? h("p.note", null, `Background: Level ${lv.id} · ${lv.title}`) : null));
+      // Fixing is the way in; the point is to learn it, so every answer ends in practice.
+      h("div.learn-it", null,
+        h("h4", null, "Now learn it"),
+        h("p", null, "Break this yourself in a safe playground and fix it. Doing it once is what makes you recognise it next time."),
+        h("div.doctor-practise", null, h("span.muted.small", null, "Practise:"),
+          d.practise.filter((id) => names[id]).map((id) => h("button.chip", { type: "button", onclick: () => practise(id) }, names[id]))),
+        lv ? h("p.note", null, "Then the level that teaches it: ", h("a", { href: "#path", onclick: (e) => { e.preventDefault(); goTab("path", () => scrollToEl($("#" + stageId(lv.stage)))); } }, `Level ${lv.id} · ${lv.title}`)) : null)));
     if (!quiet) scrollToEl($("#doctor-out"));
   }
 
@@ -536,7 +540,7 @@
     { label: "Your path", kind: "Section", run: () => goTab("path", () => $("#path-title").scrollIntoView()) },
     { label: "Exam: random questions from every level", kind: "Quiz", run: () => goTab("quiz", () => { $("#quiz-level").value = "exam"; renderQuiz(); }) },
     { label: "HCL X-ray", kind: "Section", run: () => goTab("xray") },
-    { label: "Troubleshooting reference: paste an error", kind: "Section", run: () => goTab("doctor", () => $("#doctor-q").focus()) },
+    { label: "Fix: troubleshoot an error", kind: "Section", run: () => goTab("doctor", () => $("#doctor-q").focus()) },
     { label: "Cheat sheet", kind: "Section", run: () => goTab("cheats", () => $("#cheat-q").focus()) },
     { label: "How apply works", kind: "Section", run: () => goTab("arch") },
     ...Q.levels.map((lv) => ({ label: `Quiz: ${lv.id} · ${lv.topic}`, kind: "Quiz", run: () => goTab("quiz", () => { $("#quiz-level").value = lv.id; renderQuiz(); }) })),
@@ -601,6 +605,10 @@
   $("#xray-example").addEventListener("click", () => { $("#xray-input").value = Q.xrayExample; explainPasted(); });
   buildDoctorList();
   $("#doctor-q").addEventListener("input", renderDoctorSearch);
+  // The home page's "Something broken?" box hands the pasted error to Troubleshoot.
+  const doorGo = () => { $("#doctor-q").value = $("#door-q").value; goTab("doctor", () => { renderDoctorSearch(); $("#doctor-q").focus(); }); };
+  $("#door-go").addEventListener("click", doorGo);
+  $("#door-q").addEventListener("keydown", (e) => { if (e.key === "Enter") doorGo(); });
   $("#forget").addEventListener("click", forgetEverything);
   $("#cheat-q").addEventListener("input", renderCheats);
   renderFill();
