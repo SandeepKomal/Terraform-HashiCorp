@@ -153,7 +153,7 @@
     practiseRow(c)
   ];
   function practiseRow(c) {
-    const titles = Object.fromEntries((window.TQPlayground ? window.TQPlayground.scenarios : []).map((x) => [x.id, x.title]));
+    const titles = Object.fromEntries((window.TRACK_SCENARIOS || []).map((x) => [x.id, x.title]));
     const ids = c.practise.filter((id) => titles[id]);
     return ids.length ? h("div.doctor-practise", null, h("span.muted.small", null, "Practise in the playground:"),
       ids.map((id) => h("button.chip", { type: "button", onclick: () => practise(id) }, titles[id]))) : null;
@@ -250,9 +250,11 @@
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && (pinned || touring)) { pinned = null; stopTour(); select(null); } });
   matchMedia("(max-width: 720px)").addEventListener("change", draw);
   window.addEventListener("hashchange", () => { if (location.hash !== "#arch") stopTour(); enter(); });
-  window.addEventListener("DOMContentLoaded", () => {
+  // app.js loads this file when the tab is first needed, usually after the page has loaded.
+  const start = () => {
     draw();
     root.replaceChildren(figure, detail);
     enter();
-  });
+  };
+  if (document.readyState === "loading") window.addEventListener("DOMContentLoaded", start); else start();
 })();

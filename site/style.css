@@ -855,3 +855,62 @@ pre.err { color: var(--bad); white-space: pre-wrap; overflow-wrap: anywhere; }
 @media (prefers-reduced-motion: reduce) { .brand-back { transition: none; } }
 /* Narrow phones: the logo stands for DevOps Nimbus so the header keeps one row. */
 @media (max-width: 440px) { .brand-hub > span:not([class]) { display: none; } }
+
+/* While a feature's code is still arriving, its space shows calm grey shapes of what is coming,
+   sized to what replaces them, and the first screen fades in once as one piece. Both stop for
+   reduced motion. */
+.pg-scenarios:empty, .pg-story:empty, .pg-out:empty, .pg-editor:empty, .pg-map:empty, #quiz-list:empty {
+  background: repeating-linear-gradient(to bottom, var(--code-bg) 0 12px, transparent 12px 28px) content-box;
+  animation: nimbus-skel 1.6s ease-in-out infinite alternate;
+}
+.pg-scenarios:empty { min-height: 968px; padding-top: 20px; padding-bottom: 20px; }
+.pg-story:empty { align-self: flex-start; width: 760px; max-width: 100%; min-height: 50px; background-size: 80% 100%; background-repeat: no-repeat; }
+.pg-out:empty { background-image: repeating-linear-gradient(to bottom, color-mix(in srgb, #fff 9%, transparent) 0 10px, transparent 10px 24px); background-size: 70% 100%; background-repeat: no-repeat; }
+.pg-editor:empty { min-height: 360px; }
+.pg-map:empty { min-height: 225px; border-radius: var(--radius-sm); }
+#quiz-list:empty { min-height: 320px; }
+#pg-goal:empty, .pg-try:empty::before { background: var(--code-bg); border-radius: 99px; }
+#pg-goal:empty { display: inline-block; vertical-align: middle; width: min(310px, 80vw); height: 39px; border: 0; animation: nimbus-skel 1.6s ease-in-out infinite alternate; }
+/* Pills for the Try commands: two rows beside the terminal, one row below it. */
+.pg-try:empty { min-height: 72px; animation: nimbus-skel 1.6s ease-in-out infinite alternate; }
+.pg-try:empty::before { content: ""; width: 120px; height: 30px; box-shadow: 128px 0 0 var(--code-bg), 0 40px 0 var(--code-bg); }
+/* The diagram: an empty card of the same size, 2:1 on wide screens. */
+#arch:empty {
+  padding-top: calc(50% + 69px); border: 1px solid var(--hair); border-radius: var(--radius); box-shadow: var(--shadow);
+  background: var(--surface) linear-gradient(var(--code-bg), var(--code-bg)) 50% 50% / calc(100% - 56px) calc(100% - 56px) no-repeat;
+  animation: nimbus-skel 1.6s ease-in-out infinite alternate;
+}
+@keyframes nimbus-skel { from { opacity: .5; } to { opacity: 1; } }
+/* The picker card wraps its scenario buttons into more rows as the page narrows. */
+@media (max-width: 1001px) { .pg-scenarios:empty { min-height: 1010px; } }
+@media (max-width: 995px) { .pg-scenarios:empty { min-height: 1094px; } }
+@media (max-width: 979px) { .pg-scenarios:empty { min-height: 1136px; } }
+@media (min-width: 861px) and (max-width: 910px) { .pg-editor:empty { min-height: 381px; } }
+@media (max-width: 860px) { .pg-scenarios:empty { min-height: 1086px; } .pg-map:empty { min-height: 168px; } .pg-try:empty { min-height: 32px; } .pg-try:empty::before { box-shadow: 128px 0 0 var(--code-bg), 256px 0 0 var(--code-bg); } }
+@media (max-width: 825px) { .pg-scenarios:empty { min-height: 1128px; } }
+@media (max-width: 813px) { .pg-scenarios:empty { min-height: 1170px; } }
+@media (max-width: 765px) { .pg-scenarios:empty { min-height: 1212px; } }
+@media (max-width: 753px) { .pg-scenarios:empty { min-height: 1296px; } }
+@media (max-width: 741px) { .pg-scenarios:empty { min-height: 1338px; } }
+@media (max-width: 720px) {
+  /* The scenario picker is one scrolling row of pills here. */
+  .pg-scenarios:empty { min-height: 38px; padding-top: 2px; padding-bottom: 2px; background: none; }
+  .pg-scenarios:empty::before { content: ""; flex: none; width: 96px; height: 34px; border-radius: 99px; background: var(--code-bg); box-shadow: 104px 0 0 var(--code-bg), 208px 0 0 var(--code-bg), 312px 0 0 var(--code-bg), 416px 0 0 var(--code-bg); }
+  .pg-story:empty { min-height: 47px; }
+  .pg-editor:empty { min-height: 345px; }
+  #arch:empty { padding-top: calc(261.11% + 6px); background-size: calc(100% - 32px) calc(100% - 32px); }
+}
+@media (max-width: 712px) { #arch:empty { padding-top: calc(261.11% + 15px); } }
+@media (max-width: 605px) { .pg-editor:empty { min-height: 366px; } }
+@media (max-width: 500px) { #arch:empty { padding-top: calc(261.11% + 65px); } }
+@media (max-width: 505px) { .pg-story:empty { min-height: 71px; } }
+@media (max-width: 430px) { .pg-map:empty { min-height: 203px; } }
+@media (max-width: 405px) { .pg-map:empty { min-height: 225px; } .pg-try:empty { min-height: 72px; } .pg-try:empty::before { box-shadow: 128px 0 0 var(--code-bg), 0 40px 0 var(--code-bg); } }
+@media (max-width: 379px) { .pg-story:empty { min-height: 94px; } }
+@media (max-width: 369px) { .pg-editor:empty { min-height: 414px; } }
+#signature:not(:empty), #stats:not(:empty), #engage:not(:empty), #bento:not(:empty), #levels:not(:empty) { animation: nimbus-fade .2s ease-out both; }
+@keyframes nimbus-fade { from { opacity: 0; transform: translateY(4px); } }
+@media (prefers-reduced-motion: reduce) {
+  .pg-scenarios:empty, .pg-story:empty, .pg-out:empty, .pg-editor:empty, .pg-map:empty, .pg-try:empty, #quiz-list:empty, #pg-goal:empty, #arch:empty { animation: none; }
+  #signature:not(:empty), #stats:not(:empty), #engage:not(:empty), #bento:not(:empty), #levels:not(:empty) { animation: none; }
+}

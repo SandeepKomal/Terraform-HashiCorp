@@ -40,11 +40,39 @@
     location.reload();
   }
 
+  // The first screen needs only data.js, scenarios.js (a small index of the
+  // playground's incidents), this file and engage.js. The rest loads in the
+  // background after the first paint, or at once when something needs it.
+  const LAZY = { quiz: ["quiz-bank.js"], xray: ["hcl.js", "xray.js"], play: ["hcl.js", "playground.js"], arch: ["architecture.js"] };
+  const loading = {};
+  function loadScript(src) {
+    if (!loading[src]) {
+      loading[src] = new Promise((resolve, reject) => {
+        const el = document.createElement("script");
+        el.src = src;
+        el.async = false; // run in the order they were added
+        el.onload = resolve;
+        el.onerror = () => { delete loading[src]; el.remove(); reject(new Error("Could not load " + src)); };
+        document.body.append(el);
+      });
+    }
+    return loading[src];
+  }
+  const load = (srcs) => Promise.all(srcs.map(loadScript));
+  // What to draw once a feature's scripts have run (set further down).
+  const ready = {};
+  const needed = {};
+  const need = (what) => (needed[what] = needed[what] || load(LAZY[what]).then(() => { if (ready[what]) ready[what](); }, (e) => { delete needed[what]; throw e; }));
+  const warm = () => Promise.all(Object.keys(LAZY).map(need));
+
+  const SCENARIOS = window.TRACK_SCENARIOS || [];
   const pg = () => window.TQPlayground;
-  const titles = () => Object.fromEntries((pg() ? pg().scenarios : []).map((x) => [x.id, x.title]));
+  const titles = () => Object.fromEntries(SCENARIOS.map((x) => [x.id, x.title]));
+  // Run something in the playground once it has loaded.
+  const withPg = (fn) => (pg() ? fn(pg()) : need("play").then(() => fn(pg())));
   // Open a scenario: through the address bar, so every scenario has a link.
   const practise = (id) => {
-    if (location.hash === "#play/" + id) { show(); pg().load(id); } else location.hash = "play/" + id;
+    if (location.hash === "#play/" + id) { show(); withPg((p) => p.load(id)); } else location.hash = "play/" + id;
   };
   const exampleUrl = (lv) => (lv.example ? `${Q.repo}/tree/main/${lv.example}` : null);
 
@@ -71,6 +99,7 @@
       page.classList.add("tab-in");
     }
     current = tab;
+    if (LAZY[tab]) need(tab);
     if (tab !== "path" && flowTimer) stopFlow();
     for (const t of tabs) $("#tab-" + t).hidden = t !== tab;
     const fixTabs = [...document.querySelectorAll(".mode.fix a[data-tab]")].map((a) => a.dataset.tab);
@@ -80,7 +109,10 @@
     document.querySelectorAll(".subnav a").forEach((a) => {
       if (a.dataset.tab === tab) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
     });
-    if (want === "play" && sub && pg() && titles()[sub]) { if (pg().current() !== sub || !document.activeElement || document.activeElement.id !== "pg-input") pg().load(sub); }
+    if (want === "play" && sub && titles()[sub]) {
+      if (!pg()) need("play").then(show);
+      else if (pg().current() !== sub || !document.activeElement || document.activeElement.id !== "pg-input") pg().load(sub);
+    }
     if (want === "fix" && sub) { const i = Q.problems.findIndex((d) => d.id === sub); if (i >= 0) renderProblem(i, true); }
   }
   window.addEventListener("hashchange", () => {
@@ -122,7 +154,7 @@
   }
 
   function renderLanding() {
-    const n = pg() ? pg().scenarios.length : 0;
+    const n = SCENARIOS.length;
     $("#stats").replaceChildren(...[[String(n), "incidents to fix, basics to production"], [String(Q.levels.length), "levels"], ["$0", "cloud bill: the cloud is simulated"]]
       .map(([b, s]) => h("div", null, h("b", null, b), h("span", null, s))));
     const tiles = [
@@ -234,6 +266,7 @@
   const quizScores = () => store.get("quiz", {});
 
   function renderQuiz() {
+    if (!window.TRACK_QUIZ_BANK) { need("quiz").then(renderQuiz); return; }
     const mode = $("#quiz-level").value;
     const exam = mode === "exam";
     const items = exam ? shuffle(Q.levels.flatMap((l) => questionsFor(l.id))).slice(0, EXAM_SIZE) : questionsFor(mode);
@@ -347,6 +380,7 @@
       else { $("#xray-result").hidden = true; $("#xray-view").hidden = true; }
       return;
     }
+    if (!window.TQXray) { need("xray").then(() => { if (xrayIndex === index) renderXray(index); }); return; }
     const res = window.TQXray.explain(Q.xray[index].text);
     renderXrayResult(res, Q.xray[index].path);
   }
@@ -355,6 +389,7 @@
     const error = $("#xray-error");
     const fail = (msg) => { error.textContent = msg; error.hidden = false; };
     if (!text.trim()) return fail("Paste a .tf file first, or choose Load an example.");
+    if (!window.TQXray) { need("xray").then(explainPasted); return; }
     const res = window.TQXray.explain(text);
     if (res.error) return fail(res.error);
     error.hidden = true;
@@ -492,9 +527,9 @@
         const full = parts.map((p) => p.text).join("");
         const code = h("code", null, parts.map((p) => (p.filled ? h("span.filled", null, p.text) : p.hole ? h("span.hole", null, p.text) : p.text)));
         const actions = h("div.cheat-actions", null,
-          where && pg() ? h("button.copy", {
+          where && names[where] ? h("button.copy", {
             type: "button", title: `Run it in the playground scenario "${names[where]}"`,
-            onclick: () => { location.hash = "play/" + where; show(); pg().prefill(full, where); }
+            onclick: () => { location.hash = "play/" + where; show(); withPg((p) => p.prefill(full, where)); }
           }, "Try") : h("a.copy.lab", { href: Q.repo + "#readme", title: "Needs Terraform and an account of your own" }, "Lab"),
           copyButton(full));
         return h("li", null, h("div", null, code, h("span.muted", null, what)), actions);
@@ -551,7 +586,7 @@
   ];
   function renderPalette() {
     const ws = paletteInput.value.toLowerCase().split(/\s+/).filter(Boolean);
-    const scenarios = (pg() ? pg().scenarios : []).map((sc) => ({ label: `Playground: ${sc.title}`, hint: sc.group, kind: "Practice", run: () => practise(sc.id) }));
+    const scenarios = SCENARIOS.map((sc) => ({ label: `Playground: ${sc.title}`, hint: sc.group, kind: "Practice", run: () => practise(sc.id) }));
     paletteItems = [...ACTIONS, ...scenarios].filter((a) => {
       const text = `${a.label} ${a.hint || ""} ${a.kind}`.toLowerCase();
       return ws.every((w) => text.includes(w));
@@ -566,6 +601,7 @@
   }
   function openPalette() {
     if (palette.open) return;
+    warm();
     paletteInput.value = "";
     paletteActive = 0;
     renderPalette();
@@ -595,7 +631,10 @@
   // --- init ----------------------------------------------------------------
 
   $("#quiz-level").append(h("option", { value: "exam" }, `Exam: ${EXAM_SIZE} random questions from every level`));
-  for (const lv of Q.levels) $("#quiz-level").append(h("option", { value: lv.id }, `${lv.id} · ${lv.topic} (${questionsFor(lv.id).length} questions)`));
+  const quizLabel = (lv) => `${lv.id} · ${lv.topic} (${questionsFor(lv.id).length} questions)`;
+  for (const lv of Q.levels) $("#quiz-level").append(h("option", { value: lv.id }, quizLabel(lv)));
+  // The counts include the question bank once it has loaded.
+  ready.quiz = () => { for (const lv of Q.levels) $(`#quiz-level option[value="${lv.id}"]`).textContent = quizLabel(lv); renderQuiz(); };
   $("#quiz-level").value = "00";
   $("#quiz-level").addEventListener("change", renderQuiz);
   $("#quiz-again").addEventListener("click", () => { renderQuiz(); $("#quiz-list").scrollIntoView({ block: "start" }); });
@@ -617,23 +656,25 @@
   renderFill();
   $("#cheat-fill-box").open = matchMedia("(min-width: 721px)").matches || Object.keys(fills).length > 0;
 
-  // Shared with architecture.js, which loads after this script.
-  window.TQUI = { h, rich, practise };
+  // Shared with engage.js and architecture.js, which load after this script.
+  window.TQUI = { h, rich, practise, need };
 
-  renderSignature();
   renderGuides();
   renderFlow();
-  renderQuiz();
   renderXray(Q.xray.length);
+  renderCheats();
+  $("#pg-copy").addEventListener("click", (e) => { const btn = e.currentTarget; withPg((p) => copyLink("play/" + p.current(), btn)); });
   show();
-  // The playground loads after this script; these need it.
+  // The first screen in one pass, once engage.js has run too, then the heavy
+  // features in the background.
   window.addEventListener("DOMContentLoaded", () => {
+    renderSignature();
     renderLanding();
     renderPath();
-    renderCheats();
-    $("#pg-copy").addEventListener("click", (e) => copyLink("play/" + pg().current(), e.currentTarget));
+    window.TQEngage.render();
     show();
-    if (/^#play\//.test(location.hash)) $(".playground").scrollIntoView({ block: "start" });
+    if (/^#play\//.test(location.hash)) need("play").then(() => $(".playground").scrollIntoView({ block: "start" }));
     if (/^#fix\//.test(location.hash)) $("#doctor-out").scrollIntoView({ block: "start" });
+    (window.requestIdleCallback || ((fn) => setTimeout(fn, 200)))(() => warm());
   });
 })();
