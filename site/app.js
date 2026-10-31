@@ -127,7 +127,7 @@
       ["#xray", "HCL X-ray", "Every block, explained.", "Paste a .tf file: what each line does, and the risky defaults flagged.", "wide"],
       ["#doctor", "Troubleshoot", "Error to fix.", `${Q.problems.length} errors, each with cause, fix and prevention.`],
       ["#quiz", "Quiz", "State is everything.", "Questions with the reasoning."],
-      ["#arch", "Architecture", "Core, providers, state.", "Who talks to whom on apply."]
+      ["#arch", "How apply works", "Core, providers, state.", "Who talks to whom on apply."]
     ];
     $("#bento").replaceChildren(...tiles.map(([href, k, title, text, size]) => h("a.tile" + (size ? "." + size : ""), { href },
       h("div", null, h("div.k", null, k), h("h3", null, title)), h("p", null, text))));
@@ -538,7 +538,7 @@
     { label: "HCL X-ray", kind: "Section", run: () => goTab("xray") },
     { label: "Troubleshooting reference: paste an error", kind: "Section", run: () => goTab("doctor", () => $("#doctor-q").focus()) },
     { label: "Cheat sheet", kind: "Section", run: () => goTab("cheats", () => $("#cheat-q").focus()) },
-    { label: "Terraform architecture", kind: "Section", run: () => goTab("arch") },
+    { label: "How apply works", kind: "Section", run: () => goTab("arch") },
     ...Q.levels.map((lv) => ({ label: `Quiz: ${lv.id} · ${lv.topic}`, kind: "Quiz", run: () => goTab("quiz", () => { $("#quiz-level").value = lv.id; renderQuiz(); }) })),
     ...Q.problems.map((d) => ({ label: `Error: ${d.title}`, hint: d.error, kind: "Reference", run: () => { location.hash = "fix/" + d.id; } }))
   ];

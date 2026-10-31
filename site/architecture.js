@@ -82,7 +82,7 @@
     const [w, ht] = L.size;
     const arrow = (id) => s("marker", { id, viewBox: "0 0 8 8", refX: 7, refY: 4, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse" },
       s("path", { d: "M0 0 8 4 0 8z" }));
-    svg = s("svg", { viewBox: `0 0 ${w} ${ht}`, class: "arch-svg", role: "group", "aria-label": "Terraform architecture" },
+    svg = s("svg", { viewBox: `0 0 ${w} ${ht}`, class: "arch-svg", role: "group", "aria-label": "How apply works" },
       s("defs", null, arrow("arch-arrow"), arrow("arch-arrow-on")));
     for (const [label, x, y, pw, ph, kind] of L.panels) {
       svg.append(s("rect", { x, y, width: pw, height: ph, rx: 16, class: `arch-panel arch-${kind}` }),
