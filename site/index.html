@@ -23,12 +23,18 @@
         Terraform Quest
       </a>
       <nav aria-label="Sections">
-        <a href="#path" data-tab="path">Path</a>
-        <a href="#quiz" data-tab="quiz">Quiz</a>
-        <a href="#xray" data-tab="xray">HCL X-ray</a>
-        <a href="#doctor" data-tab="doctor">Troubleshoot</a>
-        <a href="#cheats" data-tab="cheats">Cheat sheet</a>
-        <a href="#arch" data-tab="arch">How apply works</a>
+        <div class="mode learn" role="group" aria-label="Learn">
+          <span class="mode-k">Learn</span>
+          <a href="#path" data-tab="path">Path</a>
+          <a href="#quiz" data-tab="quiz">Quiz</a>
+          <a href="#xray" data-tab="xray">HCL X-ray</a>
+          <a href="#arch" data-tab="arch">How apply works</a>
+        </div>
+        <div class="mode fix" role="group" aria-label="Fix">
+          <span class="mode-k">Fix</span>
+          <a href="#doctor" data-tab="doctor">Troubleshoot</a>
+          <a href="#cheats" data-tab="cheats">Cheat sheet</a>
+        </div>
       </nav>
       <button type="button" class="kbd-btn" id="palette-open" aria-label="Search the site (Ctrl+K)"><span>Search</span><kbd id="palette-key">Ctrl K</kbd></button>
       <a class="gh" id="gh-link" href="#">GitHub</a>
@@ -42,9 +48,19 @@
           <p class="eyebrow"><img src="logo.svg" alt="" width="28" height="28">Terraform Quest</p>
           <h1>Read the plan before it reads you.</h1>
           <p class="sub">State, plans, modules and drift, learned by fixing real incidents on a simulated cloud that never sends a bill.</p>
-          <div class="ctas">
-            <a class="pill primary" href="#path-title" id="cta-path">Start the path</a>
-            <a class="link-more" href="#play/noinit" id="cta-play">Try a scenario</a>
+        </div>
+        <div class="doors">
+          <div class="door learn">
+            <p class="door-k">Learning Terraform?</p>
+            <h2>Start from zero, step by step.</h2>
+            <p>Levels in order, each with a hands-on incident to fix in your browser.</p>
+            <div class="ctas"><a class="pill primary" href="#path-title" id="cta-path">Start the path</a><a class="link-more" href="#play/noinit" id="cta-play">Try a scenario</a></div>
+          </div>
+          <div class="door fix">
+            <p class="door-k">Something broken right now?</p>
+            <h2>Paste the error, get the fix.</h2>
+            <p>The cause, the commands to confirm it and the fix, for every common Terraform error.</p>
+            <div class="door-search"><input id="door-q" type="search" placeholder="Paste an error, e.g. Error acquiring the state lock" aria-label="Paste an error" autocomplete="off"><button type="button" class="pill" id="door-go">Find the fix</button></div>
           </div>
         </div>
         <figure class="stage" id="signature" aria-label="A plan that would replace a database, and the fix"></figure>
@@ -186,8 +202,9 @@ terraform destroy</code></pre>
     </section>
 
     <section id="tab-doctor" class="tab" hidden>
-      <h2>Troubleshooting reference</h2>
-      <p class="lede">Paste the error Terraform printed, or search by word. Each entry gives the exact message, what it means, the causes, how to confirm, the fix, how to prevent it, and a scenario to practise in.</p>
+      <p class="mode-banner"><strong>Fix mode.</strong> For when something is broken right now. Learning Terraform instead? <a href="#path">Start the path</a>.</p>
+      <h2>Stuck on an error?</h2>
+      <p class="lede">Paste the error Terraform printed, or search by word. Each answer explains why it happens, how to confirm it and how to fix and prevent it, then gives you a safe scenario to break and fix it yourself, so you recognise it next time.</p>
       <div class="guide-slot" data-guide="doctor"></div>
       <label class="doctor-search">Paste an error, or search symptoms and words
         <textarea id="doctor-q" rows="2" spellcheck="false" autocapitalize="off" placeholder="Error: Error acquiring the state lock"></textarea>

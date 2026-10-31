@@ -37,7 +37,7 @@ function render() {
   <main class="wrap problems-page">
     <p class="eyebrow"><img src="logo.svg" alt="" width="28" height="28"><a href="./">Terraform Quest</a></p>
     <h1>Terraform errors and fixes</h1>
-    <p class="lede">${Q.problems.length} errors and surprises, each with the exact message, what it means, how to confirm the cause, the fix and how to prevent it. The <a href="./#doctor">interactive version</a> also searches pasted error text and opens each fix in a practice scenario.</p>
+    <p class="lede">${Q.problems.length} errors and surprises, each with the exact message, why it happens, how to confirm the cause, the fix and how to prevent it. Then learn it for good: break and fix each one yourself in the <a href="./#play/noinit">browser playground</a>. The <a href="./#doctor">interactive version</a> also searches pasted error text and opens each fix in a practice scenario.</p>
     <nav aria-label="Problems">`);
   for (const [group, ids] of Q.problemGroups) {
     out.push(`      <h2>${esc(group)}</h2>\n      <ul>`);
@@ -46,9 +46,11 @@ function render() {
   }
   out.push("    </nav>");
   for (const d of Q.problems) {
+    const lv = Q.levels.find((l) => l.id === d.level);
     out.push(`    <section class="card problem" id="${d.id}">
       <h2>${esc(d.title)}</h2>
       <pre class="err"><code>${esc(d.error)}</code></pre>
+      <h3>Why it happens</h3>
       <p>${code(d.meaning)}</p>
       <h3>Likely causes</h3>
       <ul>${d.causes.map((c) => `<li>${code(c)}</li>`).join("")}</ul>
@@ -58,7 +60,7 @@ function render() {
       <ol>${d.fix.map((c) => `<li>${code(c)}</li>`).join("")}</ol>
       <h3>Prevent it</h3>
       <ul>${d.prevent.map((c) => `<li>${code(c)}</li>`).join("")}</ul>
-      <p>Practise it: ${d.practise.map((id) => `<a href="./#play/${id}">${esc(titles[id])}</a>`).join(", ")} · <a href="./#fix/${d.id}">Open interactive</a></p>
+      <p><strong>Now learn it:</strong> break and fix it yourself in ${d.practise.map((id) => `<a href="./#play/${id}">${esc(titles[id])}</a>`).join(", ")}, then take <a href="./#path">Level ${lv.id} · ${esc(lv.title)}</a>. <a href="./#fix/${d.id}">Open interactive</a></p>
     </section>`);
   }
   out.push(`  </main>
