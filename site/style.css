@@ -859,13 +859,13 @@ pre.err { color: var(--bad); white-space: pre-wrap; overflow-wrap: anywhere; }
 /* While a feature's code is still arriving, its space shows calm grey shapes of what is coming,
    sized to what replaces them, and the first screen fades in once as one piece. Both stop for
    reduced motion. */
-.pg-scenarios:empty, .pg-story:empty, .pg-out:empty, .pg-editor:empty, .pg-map:empty, #quiz-list:empty {
+.pg-scenarios:empty, .pg-story:empty, main:has(.pg-scenarios:empty) .pg-out:empty, .pg-editor:empty, .pg-map:empty, #quiz-list:empty {
   background: repeating-linear-gradient(to bottom, var(--code-bg) 0 12px, transparent 12px 28px) content-box;
   animation: nimbus-skel 1.6s ease-in-out infinite alternate;
 }
 .pg-scenarios:empty { min-height: 968px; padding-top: 20px; padding-bottom: 20px; }
 .pg-story:empty { align-self: flex-start; width: 760px; max-width: 100%; min-height: 50px; background-size: 80% 100%; background-repeat: no-repeat; }
-.pg-out:empty { background-image: repeating-linear-gradient(to bottom, color-mix(in srgb, #fff 9%, transparent) 0 10px, transparent 10px 24px); background-size: 70% 100%; background-repeat: no-repeat; }
+main:has(.pg-scenarios:empty) .pg-out:empty { background-image: repeating-linear-gradient(to bottom, color-mix(in srgb, #fff 9%, transparent) 0 10px, transparent 10px 24px); background-size: 70% 100%; background-repeat: no-repeat; }
 .pg-editor:empty { min-height: 360px; }
 .pg-map:empty { min-height: 225px; border-radius: var(--radius-sm); }
 #quiz-list:empty { min-height: 320px; }
@@ -911,6 +911,6 @@ pre.err { color: var(--bad); white-space: pre-wrap; overflow-wrap: anywhere; }
 #signature:not(:empty), #stats:not(:empty), #engage:not(:empty), #bento:not(:empty), #levels:not(:empty) { animation: nimbus-fade .2s ease-out both; }
 @keyframes nimbus-fade { from { opacity: 0; transform: translateY(4px); } }
 @media (prefers-reduced-motion: reduce) {
-  .pg-scenarios:empty, .pg-story:empty, .pg-out:empty, .pg-editor:empty, .pg-map:empty, .pg-try:empty, #quiz-list:empty, #pg-goal:empty, #arch:empty { animation: none; }
+  .pg-scenarios:empty, .pg-story:empty, main:has(.pg-scenarios:empty) .pg-out:empty, .pg-editor:empty, .pg-map:empty, .pg-try:empty, #quiz-list:empty, #pg-goal:empty, #arch:empty { animation: none; }
   #signature:not(:empty), #stats:not(:empty), #engage:not(:empty), #bento:not(:empty), #levels:not(:empty) { animation: none; }
 }
