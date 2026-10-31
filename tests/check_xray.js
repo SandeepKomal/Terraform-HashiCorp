@@ -13,7 +13,7 @@ require(path.join(root, "site/xray.js"));
 global.window = {};
 require(path.join(root, "site/data.js"));
 const { explain } = globalThis.TQXray;
-const Q = window.QUEST;
+const Q = window.TRACK;
 
 // The embedded examples are the repository's files, byte for byte.
 for (const x of Q.xray) assert.strictEqual(x.text, fs.readFileSync(path.join(root, x.path), "utf8"), `${x.path} is out of date in site/data.js`);
@@ -54,7 +54,7 @@ assert.match(explain("resource \"x\" \"y\" {\n").error, /Line 1: Unclosed config
 assert.ok(explain("x\n".repeat(700)).error.includes("up to"));
 
 // The key ID is assembled at run time so this file never contains one.
-const keyed = explain(`provider "aws" {\n  access_key = "${"AKIA" + "QUESTPRACTICE001"}"\n}\n`);
+const keyed = explain(`provider "aws" {\n  access_key = "${"AKIA" + "NIMBUSPRACTICE01"}"\n}\n`);
 assert.ok(keyed.lines[1].warns.some((w) => /access key ID/.test(w)) && keyed.lines[1].warns.some((w) => /provider block/.test(w)), "credentials in provider block");
 
 console.log(`xray ok: ${tf.length} repository files explained, example flags ${ex.lines.filter((r) => r.warns.length).length} lines`);

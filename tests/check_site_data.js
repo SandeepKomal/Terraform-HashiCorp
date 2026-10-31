@@ -10,8 +10,8 @@ const root = path.resolve(__dirname, "..");
 global.window = {};
 require(path.join(root, "site/data.js"));
 require(path.join(root, "site/quiz-bank.js"));
-const Q = window.QUEST;
-const bank = window.QUEST_QUIZ_BANK;
+const Q = window.TRACK;
+const bank = window.TRACK_QUIZ_BANK;
 
 assert.deepStrictEqual(Q.levels.map((l) => l.id), Q.levels.map((_, i) => String(i).padStart(2, "0")), "levels are numbered in order");
 for (const lv of Q.levels) {

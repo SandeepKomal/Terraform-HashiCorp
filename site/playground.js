@@ -175,7 +175,7 @@
       this.scenario = scenario;
       this.rand = seeded(scenario.id);
       this.fs = { ...scenario.files };
-      this.env = { AWS_PROFILE: "quest", ...(scenario.env || {}) };
+      this.env = { AWS_PROFILE: "nimbus", ...(scenario.env || {}) };
       if (scenario.noCredentials) delete this.env.AWS_PROFILE;
       this.cli = scenario.cli || CLI;
       this.installed = new Set([CLI, this.cli]);
@@ -912,7 +912,7 @@
     }
     if (type === "aws_subnets") return { id: REGION, ids: w.cloudAll("aws_subnet").filter(tagOk).map((o) => o.id).sort() };
     if (type === "aws_ami") return { id: w.scenario.ami || "ami-0c1d2e3f4a5b6c7d8", most_recent: args.most_recent, owners: args.owners };
-    if (type === "aws_caller_identity") return { id: ACCOUNT, account_id: ACCOUNT, arn: `arn:aws:iam::${ACCOUNT}:user/quest` };
+    if (type === "aws_caller_identity") return { id: ACCOUNT, account_id: ACCOUNT, arn: `arn:aws:iam::${ACCOUNT}:user/nimbus` };
     if (type === "aws_region") return { id: REGION, name: REGION };
     if (type === "aws_availability_zones") return { id: REGION, names: [`${REGION}a`, `${REGION}b`, `${REGION}c`] };
     if (type === "aws_iam_policy_document") {
@@ -2623,7 +2623,7 @@
     if (!w.env.AWS_PROFILE && !w.env.AWS_ACCESS_KEY_ID) return [["", null], ['Unable to locate credentials. You can configure credentials by running "aws configure".', "warn"]];
     const [svc, op] = words;
     const tagList = (t) => Object.entries(t || {}).map(([Key, Value]) => ({ Key, Value }));
-    if (svc === "sts" && op === "get-caller-identity") return json({ UserId: "AIDAQUESTPRACTICE0001", Account: ACCOUNT, Arn: `arn:aws:iam::${ACCOUNT}:user/quest` });
+    if (svc === "sts" && op === "get-caller-identity") return json({ UserId: "AIDANIMBUSPRACTICE001", Account: ACCOUNT, Arn: `arn:aws:iam::${ACCOUNT}:user/nimbus` });
     if (svc === "s3" && op === "ls") {
       if (words[2]) {
         const b = w.cloudGet("aws_s3_bucket", words[2].replace(/^s3:\/\//, "").replace(/\/.*$/, ""));
@@ -2825,12 +2825,12 @@
   const S3_BACKEND = (extra = "") => `
 
       backend "s3" {
-        bucket         = "quest-tfstate"
+        bucket         = "nimbus-tfstate"
         key            = "shop/terraform.tfstate"
         region         = "eu-west-1"
         dynamodb_table = "tf-locks"${extra}
       }`;
-  const STATE_BUCKET = [{ type: "aws_s3_bucket", id: "quest-tfstate", attrs: { bucket: "quest-tfstate", arn: "arn:aws:s3:::quest-tfstate" }, extra: { objects: 3 } },
+  const STATE_BUCKET = [{ type: "aws_s3_bucket", id: "nimbus-tfstate", attrs: { bucket: "nimbus-tfstate", arn: "arn:aws:s3:::nimbus-tfstate" }, extra: { objects: 3 } },
     { type: "aws_dynamodb_table", id: "tf-locks", attrs: { name: "tf-locks", hash_key: "LockID" } }];
   const VPC = { type: "aws_vpc", id: "vpc-0a1b2c3d4e5f60718", attrs: { cidr_block: "10.0.0.0/16", tags: { Name: "shop-vpc" } } };
   const AMI = "ami-0c1d2e3f4a5b6c7d8";
@@ -2868,13 +2868,13 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
       title: "Forgot terraform init",
       level: "00",
       story: "You cloned the infra repository to add the website bucket. terraform plan stops before it shows anything.",
-      goal: "Create the bucket quest-site-2026.",
+      goal: "Create the bucket nimbus-site-2026.",
       done: "The bucket exists and Terraform manages it.",
       files: {
         "versions.tf": versions(),
         "main.tf": hcl(`
           resource "aws_s3_bucket" "site" {
-            bucket = "quest-site-2026"
+            bucket = "nimbus-site-2026"
 
             tags = {
               Team = "web"
@@ -2883,8 +2883,8 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
         `),
         ".gitignore": GITIGNORE
       },
-      won: (w) => live(w, "aws_s3_bucket", "quest-site-2026") && inState(w, "aws_s3_bucket.site"),
-      check: (w) => ({ label: "Bucket quest-site-2026", ok: live(w, "aws_s3_bucket", "quest-site-2026"), text: live(w, "aws_s3_bucket", "quest-site-2026") ? "created" : w.dot ? "initialised, not created" : "not initialised" }),
+      won: (w) => live(w, "aws_s3_bucket", "nimbus-site-2026") && inState(w, "aws_s3_bucket.site"),
+      check: (w) => ({ label: "Bucket nimbus-site-2026", ok: live(w, "aws_s3_bucket", "nimbus-site-2026"), text: live(w, "aws_s3_bucket", "nimbus-site-2026") ? "created" : w.dot ? "initialised, not created" : "not initialised" }),
       hints: [
         "Run terraform plan and read the last lines of the error: which command does it ask for?",
         "terraform init downloads the providers the configuration needs, records their versions in .terraform.lock.hcl and sets up the backend.",
@@ -2943,7 +2943,7 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
         `),
         "main.tf": hcl(`
           resource "aws_s3_bucket" "reports" {
-            bucket = "quest-reports-staging"
+            bucket = "nimbus-reports-staging"
 
             tags = {
               Name        = "reports-\${env}"
@@ -2975,7 +2975,7 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
         "versions.tf": versions(),
         "main.tf": hcl(`
           resource "aws_s3_bucket" "logs" {
-              bucket = "quest-logs-2026"
+              bucket = "nimbus-logs-2026"
             force_destroy = false
 
             tags = {
@@ -3008,7 +3008,7 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
         "versions.tf": versions(),
         "main.tf": hcl(`
           resource "aws_s3_bucket" "site" {
-            bucket = "quest-site-2026"
+            bucket = "nimbus-site-2026"
           }
         `),
         ".gitignore": GITIGNORE
@@ -3086,13 +3086,13 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
       title: "Importing an existing bucket",
       level: "08",
       story: "The assets bucket was created by hand years ago and holds 1,240 files. Now it is in the code, but apply fails.",
-      goal: "Bring the existing bucket quest-assets-2026 under Terraform without creating another.",
+      goal: "Bring the existing bucket nimbus-assets-2026 under Terraform without creating another.",
       done: "Terraform manages the existing bucket.",
       files: {
         "versions.tf": versions(),
         "main.tf": hcl(`
           resource "aws_s3_bucket" "assets" {
-            bucket = "quest-assets-2026"
+            bucket = "nimbus-assets-2026"
 
             tags = {
               Team = "web"
@@ -3101,14 +3101,14 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
         `),
         ".gitignore": GITIGNORE
       },
-      cloud: [{ type: "aws_s3_bucket", id: "quest-assets-2026", attrs: { bucket: "quest-assets-2026", arn: "arn:aws:s3:::quest-assets-2026", region: REGION, tags: { Team: "web" } }, extra: { objects: 1240, region: REGION } }],
+      cloud: [{ type: "aws_s3_bucket", id: "nimbus-assets-2026", attrs: { bucket: "nimbus-assets-2026", arn: "arn:aws:s3:::nimbus-assets-2026", region: REGION, tags: { Team: "web" } }, extra: { objects: 1240, region: REGION } }],
       setup: (w) => quietly(w, "terraform init"),
-      won: (w) => { const r = w.state.resources["aws_s3_bucket.assets"]; return Boolean(r) && r.id === "quest-assets-2026" && w.cloudAll("aws_s3_bucket").length === 1; },
-      check: (w) => { const r = w.state.resources["aws_s3_bucket.assets"]; return { label: "quest-assets-2026", ok: Boolean(r) && r.id === "quest-assets-2026", text: r && r.id === "quest-assets-2026" ? "managed" : w.cloudAll("aws_s3_bucket").length > 1 ? "a second bucket was created" : "not in state" }; },
+      won: (w) => { const r = w.state.resources["aws_s3_bucket.assets"]; return Boolean(r) && r.id === "nimbus-assets-2026" && w.cloudAll("aws_s3_bucket").length === 1; },
+      check: (w) => { const r = w.state.resources["aws_s3_bucket.assets"]; return { label: "nimbus-assets-2026", ok: Boolean(r) && r.id === "nimbus-assets-2026", text: r && r.id === "nimbus-assets-2026" ? "managed" : w.cloudAll("aws_s3_bucket").length > 1 ? "a second bucket was created" : "not in state" }; },
       hints: [
         "terraform apply. What does AWS say about the bucket name?",
         "The bucket exists, but the state has no record of it, so Terraform tries to create it. Tell Terraform the object already exists.",
-        "terraform import aws_s3_bucket.assets quest-assets-2026 (or add an import block with to and id), then terraform plan should show no changes."
+        "terraform import aws_s3_bucket.assets nimbus-assets-2026 (or add an import block with to and id), then terraform plan should show no changes."
       ],
       lesson: "Import connects an existing object to a resource address. Renaming the bucket in code only creates a second, empty bucket. An import block lets you review the import in a plan first.",
       tries: ["terraform apply", "aws s3 ls"]
@@ -3118,25 +3118,25 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
       title: "Stop managing without destroying",
       level: "11",
       story: "The data team now owns the 2019 archive bucket in their own repository. Your configuration must let go of it, and it holds 48,210 files.",
-      goal: "Remove quest-archive-2019 from this configuration and its state, and keep the bucket.",
+      goal: "Remove nimbus-archive-2019 from this configuration and its state, and keep the bucket.",
       done: "Terraform no longer manages the archive; the bucket survives.",
       files: {
         "versions.tf": versions(),
         "main.tf": hcl(`
           resource "aws_s3_bucket" "site" {
-            bucket = "quest-site-2026"
+            bucket = "nimbus-site-2026"
           }
 
           resource "aws_s3_bucket" "archive" {
-            bucket        = "quest-archive-2019"
+            bucket        = "nimbus-archive-2019"
             force_destroy = true
           }
         `),
         ".gitignore": GITIGNORE
       },
-      setup: (w) => { quietly(w, "terraform init", "terraform apply -auto-approve"); w.cloudGet("aws_s3_bucket", "quest-archive-2019").extra.objects = 48210; },
-      won: (w) => live(w, "aws_s3_bucket", "quest-archive-2019") && !inState(w, "aws_s3_bucket.archive") && !/"archive"\s*\{/.test(w.fs["main.tf"] || "") && cleanPlan(w),
-      check: (w) => ({ label: "Archive bucket", ok: live(w, "aws_s3_bucket", "quest-archive-2019") && !inState(w, "aws_s3_bucket.archive"), text: !live(w, "aws_s3_bucket", "quest-archive-2019") ? "deleted, 48,210 files lost" : inState(w, "aws_s3_bucket.archive") ? "still managed here" : "handed over" }),
+      setup: (w) => { quietly(w, "terraform init", "terraform apply -auto-approve"); w.cloudGet("aws_s3_bucket", "nimbus-archive-2019").extra.objects = 48210; },
+      won: (w) => live(w, "aws_s3_bucket", "nimbus-archive-2019") && !inState(w, "aws_s3_bucket.archive") && !/"archive"\s*\{/.test(w.fs["main.tf"] || "") && cleanPlan(w),
+      check: (w) => ({ label: "Archive bucket", ok: live(w, "aws_s3_bucket", "nimbus-archive-2019") && !inState(w, "aws_s3_bucket.archive"), text: !live(w, "aws_s3_bucket", "nimbus-archive-2019") ? "deleted, 48,210 files lost" : inState(w, "aws_s3_bucket.archive") ? "still managed here" : "handed over" }),
       hints: [
         "If you only delete the resource block, what does terraform plan say it will do to the bucket?",
         "Two ways to forget an object without destroying it: terraform state rm, or a removed block with lifecycle { destroy = false }, which shows up in a plan for review.",
@@ -3552,7 +3552,7 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
         `),
         "main.tf": hcl(`
           resource "aws_s3_bucket" "uploads" {
-            bucket = "quest-uploads-\${var.environment}"
+            bucket = "nimbus-uploads-\${var.environment}"
           }
         `),
         "terraform.tfvars": 'environment = "staging"\n',
@@ -3620,7 +3620,7 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
         "versions.tf": versions(),
         "main.tf": hcl(`
           module "vpc" {
-            source = "quest-modules/vpc/aws"
+            source = "nimbus-modules/vpc/aws"
 
             name           = "shop"
             cidr           = "10.0.0.0/16"
@@ -3630,7 +3630,7 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
         ".gitignore": GITIGNORE
       },
       registry: {
-        "quest-modules/vpc/aws": {
+        "nimbus-modules/vpc/aws": {
           "2.4.1": {
             "variables.tf": hcl(`
               variable "name" {
@@ -3696,9 +3696,9 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
         }
       },
       setup: (w) => {
-        w.fs["main.tf"] = w.fs["main.tf"].replace('source = "quest-modules/vpc/aws"', 'source  = "quest-modules/vpc/aws"\n  version = "2.4.1"');
+        w.fs["main.tf"] = w.fs["main.tf"].replace('source = "nimbus-modules/vpc/aws"', 'source  = "nimbus-modules/vpc/aws"\n  version = "2.4.1"');
         quietly(w, "terraform init", "terraform apply -auto-approve");
-        w.fs["main.tf"] = w.fs["main.tf"].replace('source  = "quest-modules/vpc/aws"\n  version = "2.4.1"', 'source = "quest-modules/vpc/aws"');
+        w.fs["main.tf"] = w.fs["main.tf"].replace('source  = "nimbus-modules/vpc/aws"\n  version = "2.4.1"', 'source = "nimbus-modules/vpc/aws"');
         quietly(w, "terraform init -upgrade");
       },
       won: (w) => { const m = w.dot && w.dot.modules.vpc; const call = (/version\s*=\s*"([^"]+)"/.exec(w.fs["main.tf"] || "") || [])[1]; return Boolean(m && m.version === "2.4.1" && call && satisfies("2.4.1", call) && !satisfies("3.0.0", call) && cleanPlan(w)); },
@@ -3973,7 +3973,7 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
             }
           }
         `),
-        "main.tf": 'resource "aws_s3_bucket" "logs" {\n  bucket = "quest-logs-${var.environment}"\n}\n',
+        "main.tf": 'resource "aws_s3_bucket" "logs" {\n  bucket = "nimbus-logs-${var.environment}"\n}\n',
         ".gitignore": GITIGNORE
       },
       env: { TF_VAR_environment: "production" },
@@ -3999,14 +3999,14 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
         "versions.tf": versions("~> 5.0"),
         "main.tf": hcl(`
           module "storage" {
-            source = "quest-modules/storage/aws"
+            source = "nimbus-modules/storage/aws"
             name   = "shop-media"
           }
         `),
         ".gitignore": GITIGNORE
       },
       registry: {
-        "quest-modules/storage/aws": Object.fromEntries([["1.3.0", ">= 5.0"], ["2.0.0", ">= 6.0"]].map(([v, c]) => [v, {
+        "nimbus-modules/storage/aws": Object.fromEntries([["1.3.0", ">= 5.0"], ["2.0.0", ">= 6.0"]].map(([v, c]) => [v, {
           "main.tf": hcl(`
             terraform {
               required_providers {
@@ -4046,7 +4046,7 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
       done: "Lock file updated; plan works.",
       files: {
         "versions.tf": versions("~> 5.80"),
-        "main.tf": 'resource "aws_s3_bucket" "site" {\n  bucket = "quest-site-2026"\n}\n',
+        "main.tf": 'resource "aws_s3_bucket" "site" {\n  bucket = "nimbus-site-2026"\n}\n',
         ".gitignore": GITIGNORE
       },
       setup: (w) => {
@@ -4074,7 +4074,7 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
       done: "Planned with 1.10.5.",
       files: {
         "versions.tf": versions().replace('">= 1.5"', '"~> 1.5.0"'),
-        "main.tf": 'resource "aws_s3_bucket" "site" {\n  bucket = "quest-site-2026"\n}\n',
+        "main.tf": 'resource "aws_s3_bucket" "site" {\n  bucket = "nimbus-site-2026"\n}\n',
         ".gitignore": GITIGNORE
       },
       setup: (w) => { w.cli = "1.5.7"; quietly(w, "terraform init", "terraform apply -auto-approve"); w.cli = "1.10.5"; },
@@ -4097,7 +4097,7 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
       done: "Planned against the shared state.",
       files: {
         "versions.tf": versions("~> 5.0", S3_BACKEND()),
-        "main.tf": 'resource "aws_s3_bucket" "site" {\n  bucket = "quest-site-2026"\n}\n',
+        "main.tf": 'resource "aws_s3_bucket" "site" {\n  bucket = "nimbus-site-2026"\n}\n',
         ".gitignore": GITIGNORE
       },
       cloud: STATE_BUCKET,
@@ -4123,7 +4123,7 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
       mirror: true,
       files: {
         "versions.tf": versions("~> 5.0", S3_BACKEND()),
-        "main.tf": 'resource "aws_s3_bucket" "site" {\n  bucket = "quest-site-2026"\n}\n',
+        "main.tf": 'resource "aws_s3_bucket" "site" {\n  bucket = "nimbus-site-2026"\n}\n',
         ".github/workflows/terraform.yml": workflow(["terraform init -input=false", "terraform plan -input=false"]),
         ".gitignore": GITIGNORE
       },
@@ -4187,13 +4187,13 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
       done: "Lock released; plans run again.",
       files: {
         "versions.tf": versions("~> 5.0", S3_BACKEND()),
-        "main.tf": 'resource "aws_s3_bucket" "site" {\n  bucket = "quest-site-2026"\n}\n',
+        "main.tf": 'resource "aws_s3_bucket" "site" {\n  bucket = "nimbus-site-2026"\n}\n',
         ".gitignore": GITIGNORE
       },
       cloud: STATE_BUCKET,
       setup: (w) => {
         quietly(w, "terraform init", "terraform apply -auto-approve");
-        w.locks[w.storeKey()] = { id: "b7d1e9a2-5c3f-4e8b-a1d6-0f2c9e4b7a35", path: "quest-tfstate/shop/terraform.tfstate", op: "OperationTypeApply", who: "runner@fv-az1279-614", version: "1.10.5", created: "2026-10-30 02:14:09.271946 +0000 UTC" };
+        w.locks[w.storeKey()] = { id: "b7d1e9a2-5c3f-4e8b-a1d6-0f2c9e4b7a35", path: "nimbus-tfstate/shop/terraform.tfstate", op: "OperationTypeApply", who: "runner@fv-az1279-614", version: "1.10.5", created: "2026-10-30 02:14:09.271946 +0000 UTC" };
         w.lastPlan = null;
       },
       won: (w) => !w.locks[w.storeKey()] && Boolean(w.lastPlan && w.lastPlan.locked),
@@ -4267,7 +4267,7 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
         "versions.tf": versions(),
         "main.tf": hcl(`
           resource "aws_s3_bucket" "site" {
-            bucket = "quest-site-2026"
+            bucket = "nimbus-site-2026"
           }
 
           resource "aws_instance" "web" {
@@ -4279,8 +4279,8 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
       },
       cloud: STATE_BUCKET,
       setup: (w) => { quietly(w, "terraform init", "terraform apply -auto-approve"); w.memo.ids = Object.values(w.state.resources).map((r) => r.id).sort(); w.fs["versions.tf"] = versions("~> 5.0", S3_BACKEND()); w.lastPlan = null; },
-      won: (w) => { const st = (w.stores["s3://quest-tfstate/shop/terraform.tfstate"] || {}).default; return Boolean(st) && JSON.stringify(Object.values(st.resources).map((r) => r.id).sort()) === JSON.stringify(w.memo.ids) && w.storeKey().startsWith("s3://") && cleanPlan(w); },
-      check: (w) => { const st = (w.stores["s3://quest-tfstate/shop/terraform.tfstate"] || {}).default; const n = st ? Object.keys(st.resources).length : 0; return { label: "State in S3", ok: n === 2, text: `${n} of 2 resources` }; },
+      won: (w) => { const st = (w.stores["s3://nimbus-tfstate/shop/terraform.tfstate"] || {}).default; return Boolean(st) && JSON.stringify(Object.values(st.resources).map((r) => r.id).sort()) === JSON.stringify(w.memo.ids) && w.storeKey().startsWith("s3://") && cleanPlan(w); },
+      check: (w) => { const st = (w.stores["s3://nimbus-tfstate/shop/terraform.tfstate"] || {}).default; const n = st ? Object.keys(st.resources).length : 0; return { label: "State in S3", ok: n === 2, text: `${n} of 2 resources` }; },
       hints: [
         "terraform plan asks for init. What does terraform init offer to do with the existing state?",
         "-reconfigure switches to the new backend without copying anything: the empty S3 state would make Terraform plan to create everything again.",
@@ -4300,7 +4300,7 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
         "versions.tf": versions(),
         "main.tf": hcl(`
           resource "aws_s3_bucket" "site" {
-            bucket = "quest-site-2026"
+            bucket = "nimbus-site-2026"
 
             tags = {
               CostCenter = "1042"
@@ -4336,12 +4336,12 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
       done: "The backend locks the state.",
       files: {
         "versions.tf": versions("~> 5.0", S3_BACKEND().replace('\n        dynamodb_table = "tf-locks"', "").replace("region         =", "region =").replace("bucket         =", "bucket =").replace("key            =", "key    =")),
-        "main.tf": 'resource "aws_s3_bucket" "site" {\n  bucket = "quest-site-2026"\n}\n',
+        "main.tf": 'resource "aws_s3_bucket" "site" {\n  bucket = "nimbus-site-2026"\n}\n',
         ".gitignore": GITIGNORE
       },
       cloud: STATE_BUCKET,
       setup: (w) => { quietly(w, "terraform init", "terraform apply -auto-approve"); w.lastPlan = null; },
-      won: (w) => holdsLock(w) && Boolean(w.lastPlan && w.lastPlan.locked) && w.storeKey() === "s3://quest-tfstate/shop/terraform.tfstate",
+      won: (w) => holdsLock(w) && Boolean(w.lastPlan && w.lastPlan.locked) && w.storeKey() === "s3://nimbus-tfstate/shop/terraform.tfstate",
       check: (w) => ({ label: "State locking", ok: holdsLock(w), text: holdsLock(w) ? (w.dot.backend.cfg.use_lockfile ? "S3 lock file" : "DynamoDB table") : "off" }),
       hints: [
         "cat versions.tf: what does the s3 backend use to lock? aws dynamodb scan --table-name tf-locks shows a lock table exists.",
@@ -4359,14 +4359,14 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
       goal: "Initialise against the team's real state bucket and plan.",
       done: "Initialised; shared state found.",
       files: {
-        "versions.tf": versions("~> 5.0", S3_BACKEND().replace('"quest-tfstate"', '"quest-tf-state"')),
-        "main.tf": 'resource "aws_s3_bucket" "site" {\n  bucket = "quest-site-2026"\n}\n',
+        "versions.tf": versions("~> 5.0", S3_BACKEND().replace('"nimbus-tfstate"', '"nimbus-tf-state"')),
+        "main.tf": 'resource "aws_s3_bucket" "site" {\n  bucket = "nimbus-site-2026"\n}\n',
         ".gitignore": GITIGNORE
       },
       cloud: STATE_BUCKET,
       setup: (w) => {
         const want = w.fs["versions.tf"];
-        w.fs["versions.tf"] = want.replace('"quest-tf-state"', '"quest-tfstate"');
+        w.fs["versions.tf"] = want.replace('"nimbus-tf-state"', '"nimbus-tfstate"');
         quietly(w, "terraform init", "terraform apply -auto-approve");
         w.fs["versions.tf"] = want;
         w.dot = null;
@@ -4374,12 +4374,12 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
         for (const f of Object.keys(w.fs)) if (f.startsWith(".terraform/")) delete w.fs[f];
         w.lastPlan = null;
       },
-      won: (w) => w.storeKey() === "s3://quest-tfstate/shop/terraform.tfstate" && cleanPlan(w),
-      check: (w) => ({ label: "Backend", ok: w.storeKey() === "s3://quest-tfstate/shop/terraform.tfstate", text: w.dot && w.dot.backend ? w.dot.backend.cfg.bucket : "not initialised" }),
+      won: (w) => w.storeKey() === "s3://nimbus-tfstate/shop/terraform.tfstate" && cleanPlan(w),
+      check: (w) => ({ label: "Backend", ok: w.storeKey() === "s3://nimbus-tfstate/shop/terraform.tfstate", text: w.dot && w.dot.backend ? w.dot.backend.cfg.bucket : "not initialised" }),
       hints: [
         "terraform init names the bucket. aws s3 ls lists the buckets that exist.",
         "The backend block has a typo. Creating a new bucket with that name would give you an empty state, and the next apply would try to recreate everything.",
-        "Fix bucket = \"quest-tfstate\" in versions.tf, then terraform init and terraform plan."
+        "Fix bucket = \"nimbus-tfstate\" in versions.tf, then terraform init and terraform plan."
       ],
       lesson: "The backend block points at shared state; a wrong bucket or key means an empty state, not an error later. A clean plan after init proves you found the right one.",
       tries: ["terraform init", "aws s3 ls"]
@@ -4518,7 +4518,7 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
         "versions.tf": versions(),
         "main.tf": hcl(`
           resource "aws_s3_bucket" "reports" {
-            bucket = "quest-partner-reports"
+            bucket = "nimbus-partner-reports"
           }
 
           resource "aws_s3_bucket_acl" "reports" {
@@ -4530,11 +4530,11 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
       },
       setup: (w) => quietly(w, "terraform init"),
       won: (w) => {
-        const pab = w.cloudAll("aws_s3_bucket_public_access_block").find((o) => o.attrs.bucket === "quest-partner-reports");
-        const acl = w.cloudAll("aws_s3_bucket_acl").find((o) => o.attrs.bucket === "quest-partner-reports");
-        return live(w, "aws_s3_bucket", "quest-partner-reports") && Boolean(pab) && ["block_public_acls", "block_public_policy", "ignore_public_acls", "restrict_public_buckets"].every((k) => pab.attrs[k] === true) && (!acl || acl.attrs.acl === "private");
+        const pab = w.cloudAll("aws_s3_bucket_public_access_block").find((o) => o.attrs.bucket === "nimbus-partner-reports");
+        const acl = w.cloudAll("aws_s3_bucket_acl").find((o) => o.attrs.bucket === "nimbus-partner-reports");
+        return live(w, "aws_s3_bucket", "nimbus-partner-reports") && Boolean(pab) && ["block_public_acls", "block_public_policy", "ignore_public_acls", "restrict_public_buckets"].every((k) => pab.attrs[k] === true) && (!acl || acl.attrs.acl === "private");
       },
-      check: (w) => { const acl = w.cloudAll("aws_s3_bucket_acl").find((o) => o.attrs.bucket === "quest-partner-reports"); const pab = w.cloudAll("aws_s3_bucket_public_access_block").length; return { label: "quest-partner-reports", ok: !(acl && acl.attrs.acl !== "private") && pab > 0, text: acl && acl.attrs.acl !== "private" ? "public" : pab ? "private, blocked" : live(w, "aws_s3_bucket", "quest-partner-reports") ? "private, not blocked" : "not created" }; },
+      check: (w) => { const acl = w.cloudAll("aws_s3_bucket_acl").find((o) => o.attrs.bucket === "nimbus-partner-reports"); const pab = w.cloudAll("aws_s3_bucket_public_access_block").length; return { label: "nimbus-partner-reports", ok: !(acl && acl.attrs.acl !== "private") && pab > 0, text: acl && acl.attrs.acl !== "private" ? "public" : pab ? "private, blocked" : live(w, "aws_s3_bucket", "nimbus-partner-reports") ? "private, not blocked" : "not created" }; },
       hints: [
         "terraform apply. New buckets have Object Ownership set to BucketOwnerEnforced, which turns ACLs off.",
         "Switching ownership to ObjectWriter would let the public ACL through: exactly what the default protects you from. Share with the partner through a bucket policy for their account, or presigned URLs.",
@@ -4553,7 +4553,7 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
       noCredentials: true,
       files: {
         "versions.tf": versions(),
-        "main.tf": 'resource "aws_s3_bucket" "site" {\n  bucket = "quest-site-2026"\n}\n',
+        "main.tf": 'resource "aws_s3_bucket" "site" {\n  bucket = "nimbus-site-2026"\n}\n',
         ".gitignore": GITIGNORE
       },
       setup: (w) => quietly(w, "terraform init"),
@@ -4562,7 +4562,7 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
       hints: [
         "terraform plan, then env | grep AWS. Where does the provider look for credentials?",
         "The provider reads the same chain as the AWS CLI: environment variables, AWS_PROFILE, SSO, instance roles. Keys in a provider block end up in Git.",
-        "export AWS_PROFILE=quest (check with aws sts get-caller-identity), then terraform plan."
+        "export AWS_PROFILE=nimbus (check with aws sts get-caller-identity), then terraform plan."
       ],
       lesson: "Never put access keys in Terraform. Use profiles or SSO locally and OIDC roles in CI; the provider finds them without any code.",
       tries: ["terraform plan", "aws sts get-caller-identity"]
@@ -4669,7 +4669,7 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
           }
 
           resource "aws_s3_bucket" "site" {
-            bucket = "quest-site-2026"
+            bucket = "nimbus-site-2026"
           }
         `),
         ".gitignore": GITIGNORE
@@ -4688,12 +4688,12 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
       won: (w) => JSON.stringify(Object.values(w.state.resources).map((r) => r.id).sort()) === JSON.stringify(w.memo.ids) && w.cloudAll("aws_instance").length === 1 && cleanPlan(w),
       check: (w) => { const n = Object.keys(w.state.resources).length; const dup = w.cloudAll("aws_instance").length > 1; return { label: "Shared state", ok: n === 2 && !dup, text: dup ? "a duplicate server was created" : `${n} of 2 resources` }; },
       hints: [
-        "terraform plan wants to create both. aws s3api list-object-versions --bucket quest-tfstate --prefix shop/terraform.tfstate lists every version of the state file.",
+        "terraform plan wants to create both. aws s3api list-object-versions --bucket nimbus-tfstate --prefix shop/terraform.tfstate lists every version of the state file.",
         "The newest version is the empty push. Download the one before it with aws s3api get-object ... --version-id <id> recovered.tfstate. Applying now would create a second server; plain state push refuses an older serial.",
-        "aws s3api get-object --bucket quest-tfstate --key shop/terraform.tfstate --version-id <second newest> recovered.tfstate, then terraform state push -force recovered.tfstate, then terraform plan."
+        "aws s3api get-object --bucket nimbus-tfstate --key shop/terraform.tfstate --version-id <second newest> recovered.tfstate, then terraform state push -force recovered.tfstate, then terraform plan."
       ],
       lesson: "Turn on versioning for state buckets: it is the undo button. Recover by downloading the last good version and pushing it with -force, then prove it with a clean plan. Avoid state push in daily work.",
-      tries: ["terraform plan", "aws s3api list-object-versions --bucket quest-tfstate --prefix shop/terraform.tfstate"]
+      tries: ["terraform plan", "aws s3api list-object-versions --bucket nimbus-tfstate --prefix shop/terraform.tfstate"]
     },
     {
       id: "awsv5upgrade",
@@ -4706,7 +4706,7 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
         "versions.tf": versions("~> 5.0"),
         "main.tf": hcl(`
           resource "aws_s3_bucket" "reports" {
-            bucket = "quest-reports-archive"
+            bucket = "nimbus-reports-archive"
             acl    = "private"
 
             versioning {
@@ -4770,7 +4770,7 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
         `),
         "main.tf": hcl(`
           resource "aws_s3_bucket" "logs" {
-            bucket = "quest-logs-\${var.team}"
+            bucket = "nimbus-logs-\${var.team}"
 
             tags = {
               Team        = var.team
@@ -4788,7 +4788,7 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
             command = plan
 
             assert {
-              condition     = aws_s3_bucket.logs.bucket == "quest-logs-dev"
+              condition     = aws_s3_bucket.logs.bucket == "nimbus-logs-dev"
               error_message = "The logs bucket name must end with the environment."
             }
           }
@@ -4817,7 +4817,7 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
       hints: [
         "terraform test. Which assertion fails, and what value did the plan produce?",
         "The test encodes the naming standard; editing or deleting it hides the bug from the next person. Compare the bucket expression with the rule.",
-        "In main.tf use bucket = \"quest-logs-${var.environment}\", then terraform test."
+        "In main.tf use bucket = \"nimbus-logs-${var.environment}\", then terraform test."
       ],
       lesson: "terraform test runs plans (or throwaway applies) with set variables and checks assertions, so conventions are enforced before review. When a test fails, fix the code unless the rule itself changed on purpose.",
       tries: ["terraform test", "cat tests/naming.tftest.hcl"]
@@ -5088,6 +5088,7 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
     if (solved || !scenario.won(world)) return;
     solved = true;
     saved.add(scenario.id);
+    document.dispatchEvent(new CustomEvent("dq:solved", { detail: scenario.id }));
     renderPicker();
     const b = picker.querySelector('.pg-scn[aria-pressed="true"]');
     if (b) { b.classList.add("just-solved"); b.closest(".pg-group").querySelector(".pg-group-count").classList.add("bump"); }
@@ -5095,7 +5096,7 @@ ${steps.map((x) => `          - run: ${x}`).join("\n")}
     goal.className = "pg-goal done";
     print("");
     print("✓ Fixed. " + scenario.lesson, "ok");
-    const lv = (window.QUEST && window.QUEST.levels || []).find((l) => l.id === scenario.level);
+    const lv = (window.TRACK && window.TRACK.levels || []).find((l) => l.id === scenario.level);
     if (lv) print(`  Read more in Level ${lv.id} · ${lv.title}.`, "dim");
     const next = SCENARIOS.find((s) => !saved.get().includes(s.id));
     print(next ? `  Next scenario: ${next.title}. Pick it above, or type 'next'.` : "  You solved every scenario.", "dim");
