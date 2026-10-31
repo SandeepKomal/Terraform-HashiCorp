@@ -368,4 +368,9 @@ for (const [cmd, , , where] of Q.cheats) {
 for (const s of SCENARIOS) assert.ok(Q.levels.some((l) => l.id === s.level), `${s.id}: level ${s.level}`);
 for (const d of Q.problems) for (const id of d.practise) assert.ok(ids.has(id), `problem ${d.id} links to unknown scenario ${id}`);
 
+// The first screen reads the scenario index, so it must match the playground.
+const fs = require("fs");
+const index = require(path.resolve(__dirname, "../tools/build-scenarios.js"));
+assert.strictEqual(fs.readFileSync(index.file, "utf8"), index.render(), "site/scenarios.js is out of date: run node tools/build-scenarios.js");
+
 console.log(`playground ok: ${SCENARIOS.length} scenarios`);

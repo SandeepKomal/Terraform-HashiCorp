@@ -44,7 +44,7 @@
 - a 16-level path that links these examples, a quiz, a cheat sheet and an architecture diagram.
 - a **scoreboard**: a score with ranks, a skill radar, learning uptime and on-call shifts against the clock, with Download and Load progress to move it between browsers.
 
-Nothing is installed and nothing leaves the browser. The commands are the same with [OpenTofu](https://opentofu.org) (`tofu`). Run the checks with `node tests/check_playground.js` (and the other files in `tests/`); after changing the troubleshooting entries, run `node tools/build-problems.js`.
+Nothing is installed and nothing leaves the browser. The commands are the same with [OpenTofu](https://opentofu.org) (`tofu`). Run the checks with `node tests/check_playground.js` (and the other files in `tests/`); after changing the troubleshooting entries, run `node tools/build-problems.js`, and after adding or renaming a playground scenario, `node tools/build-scenarios.js`.
 
 ## What's in this repository
 
@@ -123,7 +123,7 @@ For examples with required variables, create a local `terraform.tfvars` file. It
 | `tf-*/`, [ECS/](ECS/), [ECS-EC2/](ECS-EC2/) | One standalone Terraform example per directory |
 | [site/](site/) | The DevOps Nimbus Terraform learning site (GitHub Pages) |
 | [tests/](tests/) | Tests for the site: playground, fuzzer, HCL X-ray, data, problems.html |
-| [tools/](tools/) | Builds site/problems.html from the troubleshooting entries |
+| [tools/](tools/) | Builds site/problems.html from the troubleshooting entries, and site/scenarios.js (the scenario index the first screen reads) from the playground |
 | [.github/workflows/](.github/workflows/) | Site tests, Terraform checks with the Trivy scan, Pages deploy |
 | [.trivyignore.yaml](.trivyignore.yaml) | Accepted Trivy findings, each with a reason |
 

@@ -65,7 +65,8 @@
   let shift = get("shift", null);
   let tick;
   function startShift() {
-    const all = window.TQPlayground.scenarios;
+    window.TQUI.need("play"); // the pager is about to send you to the playground
+    const all = window.TRACK_SCENARIOS;
     const solved = new Set(get("pg-solved", []));
     const pool = all.filter((s) => !solved.has(s.id));
     const pick = (pool.length ? pool : all)[Math.floor(Math.random() * (pool.length || all.length))];
@@ -94,7 +95,7 @@
         h("p", null, log.count ? `${log.count} shift${log.count > 1 ? "s" : ""} done · best ${clock(log.best)}` : "A random incident you have not solved yet, against the clock."),
         h("button.pill.primary", { type: "button", onclick: startShift }, log.count ? "Take another shift" : "Start a shift"));
     }
-    const s = window.TQPlayground.scenarios.find((x) => x.id === shift.id);
+    const s = window.TRACK_SCENARIOS.find((x) => x.id === shift.id);
     if (!s) { shift = null; return shiftCard(); }
     const time = h("span.eng-time", { "aria-live": "off" }, clock(Date.now() - shift.at));
     tick = setInterval(() => { time.textContent = clock(Date.now() - shift.at); }, 1000);
@@ -146,7 +147,7 @@
     const solved = new Set(get("pg-solved", []));
     const stages = [...new Set(Q.levels.map((l) => l.stage))].map((name) => {
       const ids = Q.levels.filter((l) => l.stage === name).map((l) => l.id);
-      const scn = window.TQPlayground.scenarios.filter((s) => ids.includes(s.level));
+      const scn = window.TRACK_SCENARIOS.filter((s) => ids.includes(s.level));
       const lv = ids.filter((id) => done.has(id)).length / ids.length;
       return { name, v: scn.length ? (lv + scn.filter((s) => solved.has(s.id)).length / scn.length) / 2 : lv };
     });
@@ -210,7 +211,7 @@
     return h("div.eng-board", null,
       h("div.eng-panels", null, radar(), uptime()),
       h("div.eng-stats", null,
-        stat(`${sc.solved}/${window.TQPlayground.scenarios.length}`, "incidents fixed"),
+        stat(`${sc.solved}/${window.TRACK_SCENARIOS.length}`, "incidents fixed"),
         stat(`${sc.levels}/${Q.levels.length}`, "levels done"),
         stat(`${sc.passed}/${Q.levels.length}`, "quizzes passed"),
         stat(String(shifts.count), shifts.best ? `shifts · best ${clock(shifts.best)}` : "on-call shifts"),
@@ -260,10 +261,10 @@
 
   function render() {
     const box = document.getElementById("engage");
-    if (!box || !window.TQPlayground) return;
+    if (!box || !window.TRACK_SCENARIOS) return;
     box.replaceChildren(continueCard(), shiftCard(), scoreCard(), board());
   }
 
   window.TQEngage = { active, render };
-  window.addEventListener("DOMContentLoaded", render);
+  // app.js draws the scoreboard with the rest of the first screen.
 })();
