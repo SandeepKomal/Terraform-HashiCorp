@@ -170,7 +170,7 @@ The learning site runs in your browser: no accounts, cookies, trackers or databa
 
 ### Important AWS cost note
 
-NAT gateways, RDS, EKS, ECS/EC2, ALBs, EBS, and other AWS resources can incur charges. Use small development configurations and destroy resources when finished.
+NAT gateways, RDS, EKS, ECS/EC2, ALBs, EBS, and other AWS resources can incur charges. Use small development configurations and destroy resources when finished. See [PRIVACY.md](PRIVACY.md) for the full privacy policy.
 
 ## License and trademarks
 
