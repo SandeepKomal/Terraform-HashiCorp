@@ -6,16 +6,16 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
   <meta name="description" content="Every common Terraform error with its exact message, what it means, the likely causes, how to confirm, the fix and how to prevent it: 58 entries.">
   <meta property="og:type" content="article">
-  <meta property="og:title" content="Terraform errors and fixes: Terraform Quest">
+  <meta property="og:title" content="Terraform errors and fixes · DevOps Nimbus">
   <meta property="og:description" content="Exact Terraform error messages with causes, fixes and prevention.">
   <link rel="canonical" href="https://sandeepkomal.github.io/Terraform-HashiCorp/problems.html">
   <title>Terraform errors and fixes</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
 </head>
 <body>
   <main class="wrap problems-page">
-    <p class="eyebrow"><img src="logo.svg" alt="" width="28" height="28"><a href="./">Terraform Quest</a></p>
+    <p class="eyebrow"><img src="logo.svg" alt="" width="28" height="28"><a href="./">DevOps Nimbus · Terraform</a></p>
     <h1>Terraform errors and fixes</h1>
     <p class="lede">58 errors and surprises, each with the exact message, why it happens, how to confirm the cause, the fix and how to prevent it. Then learn it for good: break and fix each one yourself in the <a href="./#play/noinit">browser playground</a>. The <a href="./#doctor">interactive version</a> also searches pasted error text and opens each fix in a practice scenario.</p>
     <nav aria-label="Problems">
@@ -625,7 +625,7 @@ migrating existing state.</code></pre>
     </section>
     <section class="card problem" id="backend-bucket">
       <h2>S3 bucket does not exist (backend)</h2>
-      <pre class="err"><code>Error: Failed to get existing workspaces: S3 bucket &quot;quest-tf-state&quot; does not exist.</code></pre>
+      <pre class="err"><code>Error: Failed to get existing workspaces: S3 bucket &quot;nimbus-tf-state&quot; does not exist.</code></pre>
       <h3>Why it happens</h3>
       <p>The backend points at a bucket that does not exist in this account.</p>
       <h3>Likely causes</h3>
@@ -864,7 +864,7 @@ result of this plan may not represent all of the changes requested</code></pre>
     </section>
     <section class="card problem" id="bucket-exists">
       <h2>BucketAlreadyOwnedByYou / BucketAlreadyExists</h2>
-      <pre class="err"><code>Error: creating S3 Bucket (quest-assets-2026): BucketAlreadyOwnedByYou: Your previous request to create the named bucket succeeded and you already own it.</code></pre>
+      <pre class="err"><code>Error: creating S3 Bucket (nimbus-assets-2026): BucketAlreadyOwnedByYou: Your previous request to create the named bucket succeeded and you already own it.</code></pre>
       <h3>Why it happens</h3>
       <p>The bucket exists already: in your account (OwnedByYou) or someone else's (AlreadyExists; names are global).</p>
       <h3>Likely causes</h3>
@@ -880,7 +880,7 @@ terraform state list</code></pre>
     </section>
     <section class="card problem" id="bucket-not-empty">
       <h2>BucketNotEmpty</h2>
-      <pre class="err"><code>Error: deleting S3 Bucket (quest-archive-2019): BucketNotEmpty: The bucket you tried to delete is not empty</code></pre>
+      <pre class="err"><code>Error: deleting S3 Bucket (nimbus-archive-2019): BucketNotEmpty: The bucket you tried to delete is not empty</code></pre>
       <h3>Why it happens</h3>
       <p>S3 refuses to delete a bucket with objects unless force_destroy is set.</p>
       <h3>Likely causes</h3>
@@ -910,7 +910,7 @@ terraform state list</code></pre>
     </section>
     <section class="card problem" id="acl-not-supported">
       <h2>AccessControlListNotSupported</h2>
-      <pre class="err"><code>Error: creating S3 Bucket ACL (quest-partner-reports,public-read): AccessControlListNotSupported: The bucket does not allow ACLs</code></pre>
+      <pre class="err"><code>Error: creating S3 Bucket ACL (nimbus-partner-reports,public-read): AccessControlListNotSupported: The bucket does not allow ACLs</code></pre>
       <h3>Why it happens</h3>
       <p>New buckets enforce bucket-owner ownership, which disables ACLs.</p>
       <h3>Likely causes</h3>
@@ -1063,7 +1063,7 @@ Read the provider's upgrade guide</code></pre>
       <pre class="err"><code>Error: Test assertion failed
 
   on tests/naming.tftest.hcl line 10, in run &quot;bucket_name_has_environment&quot;:
-  10:     condition     = aws_s3_bucket.logs.bucket == &quot;quest-logs-dev&quot;
+  10:     condition     = aws_s3_bucket.logs.bucket == &quot;nimbus-logs-dev&quot;
 
 The logs bucket name must end with the environment.</code></pre>
       <h3>Why it happens</h3>

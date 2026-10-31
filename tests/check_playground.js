@@ -48,10 +48,10 @@ assert.ok(SCENARIOS.length >= 49, "at least 49 scenarios");
 // State: removed, moved, taint.
 {
 let w = fresh("removed");
-sub(w,"main.tf",'\nresource "aws_s3_bucket" "archive" {\n  bucket        = "quest-archive-2019"\n  force_destroy = true\n}\n','');
+sub(w,"main.tf",'\nresource "aws_s3_bucket" "archive" {\n  bucket        = "nimbus-archive-2019"\n  force_destroy = true\n}\n','');
 run(w,"terraform apply -auto-approve"); assert(!won(w)); quiet("removed wrong ok", w.scenario.check(w).text);
 w = fresh("removed");
-sub(w,"main.tf",'resource "aws_s3_bucket" "archive" {\n  bucket        = "quest-archive-2019"\n  force_destroy = true\n}','removed {\n  from = aws_s3_bucket.archive\n\n  lifecycle {\n    destroy = false\n  }\n}');
+sub(w,"main.tf",'resource "aws_s3_bucket" "archive" {\n  bucket        = "nimbus-archive-2019"\n  force_destroy = true\n}','removed {\n  from = aws_s3_bucket.archive\n\n  lifecycle {\n    destroy = false\n  }\n}');
 run(w,"terraform plan",1); run(w,"terraform apply -auto-approve"); run(w,"terraform plan"); assert(won(w), "removed fix");
 w = fresh("moved"); run(w,"terraform plan"); 
 w.fs["main.tf"] += '\nmoved {\n  from = aws_instance.web\n  to   = aws_instance.app\n}\n';
@@ -152,7 +152,7 @@ w = fresh("varci"); sub(w,"variables.tf","type        = string","type        = s
 w = fresh("tfvarsprec"); quiet(run(w,"terraform plan").split("\n").filter(l=>/instance_type|Plan/.test(l)).join("\n"));
 run(w,"export TF_VAR_instance_type=t3.large"); run(w,"terraform plan"); assert(!won(w)); run(w,"rm dev.auto.tfvars"); run(w,"terraform plan"); assert(won(w),"tfvars");
 w = fresh("modpin"); quiet(run(w,"terraform plan")); run(w,"terraform init"); assert(!/Success/.test(run(w,"terraform validate")));
-sub(w,"main.tf",'source = "quest-modules/vpc/aws"','source  = "quest-modules/vpc/aws"\n  version = "~> 2.4"');
+sub(w,"main.tf",'source = "nimbus-modules/vpc/aws"','source  = "nimbus-modules/vpc/aws"\n  version = "~> 2.4"');
 quiet(run(w,"terraform plan").split("\n").slice(0,8).join("\n")); quiet(run(w,"terraform init").split("\n").slice(0,4).join("\n")); run(w,"terraform plan",1); assert(won(w),"modpin");
 }
 
@@ -206,7 +206,7 @@ w = fresh("validation"); run(w,"export TF_VAR_environment=prod"); run(w,"terrafo
 // providers and versions.
 {
 let w = fresh("provconflict"); quiet(last(run(w,"terraform init"),9)); run(w,"terraform init -upgrade"); assert(!won(w));
-sub(w,"main.tf",'source = "quest-modules/storage/aws"','source  = "quest-modules/storage/aws"\n  version = "~> 1.3"'); quiet(last(run(w,"terraform init"),3)); run(w,"terraform plan"); assert(won(w),"provconflict");
+sub(w,"main.tf",'source = "nimbus-modules/storage/aws"','source  = "nimbus-modules/storage/aws"\n  version = "~> 1.3"'); quiet(last(run(w,"terraform init"),3)); run(w,"terraform plan"); assert(won(w),"provconflict");
 quiet(run(w,"terraform providers"));
 w = fresh("lockedversion"); quiet(last(run(w,"terraform plan"),10)); quiet(last(run(w,"terraform init"),8)); run(w,"rm -rf .terraform"); run(w,"terraform init"); assert(!won(w));
 run(w,"terraform init -upgrade"); run(w,"terraform plan"); assert(won(w),"lockedversion");
@@ -241,7 +241,7 @@ w = fresh("nolock"); run(w,"terraform plan -lock=true"); assert(!won(w));
 sub(w,"versions.tf",'key    = "shop/terraform.tfstate"','key    = "shop/terraform.tfstate"\n    dynamodb_table = "tf-locks"');
 quiet(last(run(w,"terraform plan"),3)); quiet(run(w,"terraform init")); run(w,"terraform init -reconfigure"); run(w,"terraform plan"); assert(won(w),"nolock");
 w = fresh("nolock"); sub(w,"versions.tf",'key    = "shop/terraform.tfstate"','key    = "shop/terraform.tfstate"\n    use_lockfile = true'); run(w,"terraform init -migrate-state"); quiet(last(run(w,"terraform plan"),4)); assert(won(w),"nolock2");
-w = fresh("backendbucket"); quiet(run(w,"terraform init")); sub(w,"versions.tf",'"quest-tf-state"','"quest-tfstate"'); run(w,"terraform init"); run(w,"terraform plan"); assert(won(w),"bucket");
+w = fresh("backendbucket"); quiet(run(w,"terraform init")); sub(w,"versions.tf",'"nimbus-tf-state"','"nimbus-tfstate"'); run(w,"terraform init"); run(w,"terraform plan"); assert(won(w),"bucket");
 w = fresh("sensitiveout"); quiet(run(w,"terraform plan")); sub(w,"variables.tf","\n  sensitive = true",""); run(w,"terraform apply -auto-approve"); assert(!won(w));
 w = fresh("sensitiveout"); sub(w,"outputs.tf",'  value = ','  sensitive = true\n  value     = '); run(w,"terraform apply -auto-approve"); assert(won(w),"sens"); quiet(run(w,"terraform output"), run(w,"terraform output database_url"));
 w = fresh("dbpassword"); quiet(run(w,"terraform state pull | grep password"));
@@ -251,9 +251,9 @@ w = fresh("openssh"); sub(w,"main.tf",'from_port   = 22\n    to_port     = 22','
 w = fresh("openssh"); sub(w,"main.tf",'protocol    = "tcp"\n    cidr_blocks = ["0.0.0.0/0"]\n  }\n\n  ingress {\n    from_port   = 443','protocol    = "tcp"\n    cidr_blocks = ["10.20.0.0/16"]\n  }\n\n  ingress {\n    from_port   = 443'); run(w,"terraform apply -auto-approve"); assert(won(w),"ssh");
 w = fresh("publicbucket"); quiet(last(run(w,"terraform apply -auto-approve"),9)); assert(!won(w));
 w.fs["main.tf"] += '\nresource "aws_s3_bucket_ownership_controls" "reports" {\n  bucket = aws_s3_bucket.reports.id\n\n  rule {\n    object_ownership = "ObjectWriter"\n  }\n}\n'; quiet(last(run(w,"terraform apply -auto-approve"),3)); 
-w = fresh("publicbucket"); w.fs["main.tf"] = 'resource "aws_s3_bucket" "reports" {\n  bucket = "quest-partner-reports"\n}\n\nresource "aws_s3_bucket_public_access_block" "reports" {\n  bucket                  = aws_s3_bucket.reports.id\n  block_public_acls       = true\n  block_public_policy     = true\n  ignore_public_acls      = true\n  restrict_public_buckets = true\n}\n'; run(w,"terraform apply -auto-approve"); assert(won(w),"public");
+w = fresh("publicbucket"); w.fs["main.tf"] = 'resource "aws_s3_bucket" "reports" {\n  bucket = "nimbus-partner-reports"\n}\n\nresource "aws_s3_bucket_public_access_block" "reports" {\n  bucket                  = aws_s3_bucket.reports.id\n  block_public_acls       = true\n  block_public_policy     = true\n  ignore_public_acls      = true\n  restrict_public_buckets = true\n}\n'; run(w,"terraform apply -auto-approve"); assert(won(w),"public");
 w = fresh("credentials"); sub(w,"versions.tf",'region = "eu-west-1"','region     = "eu-west-1"\n  access_key = "x"\n  secret_key = "y"'); run(w,"terraform plan"); assert(!won(w)); 
-w = fresh("credentials"); run(w,"export AWS_PROFILE=quest"); run(w,"terraform plan"); assert(won(w),"creds");
+w = fresh("credentials"); run(w,"export AWS_PROFILE=nimbus"); run(w,"terraform plan"); assert(won(w),"creds");
 }
 
 // Throttling, timeouts, state recovery, provider upgrades, tests, and rules that fight.
@@ -264,8 +264,8 @@ w = fresh("throttling"); sub(w,"versions.tf","\n  max_retries = 1",""); run(w,"t
 w = fresh("timeouts"); quiet(run(w,"terraform plan").split("\n").filter(l=>/#|Plan/.test(l)).join("\n")); run(w,"terraform apply -auto-approve"); assert(!won(w)); quiet(w.scenario.check(w));
 w = fresh("timeouts"); quiet(run(w,"terraform untaint aws_db_instance.warehouse")); sub(w,"main.tf","  skip_final_snapshot         = true\n","  skip_final_snapshot         = true\n\n  timeouts {\n    create = \"120m\"\n  }\n"); quiet(last(run(w,"terraform plan"),4)); assert(won(w),"timeouts");
 w = fresh("staterecover"); quiet(run(w,"terraform plan").split("\n").filter(l=>/#|Plan/.test(l)).join("\n"));
-const vs = JSON.parse(run(w,"aws s3api list-object-versions --bucket quest-tfstate --prefix shop/terraform.tfstate")).Versions; quiet(vs.length);
-quiet(run(w,`aws s3api get-object --bucket quest-tfstate --key shop/terraform.tfstate --version-id ${vs[1].VersionId} recovered.tfstate`).slice(0,80));
+const vs = JSON.parse(run(w,"aws s3api list-object-versions --bucket nimbus-tfstate --prefix shop/terraform.tfstate")).Versions; quiet(vs.length);
+quiet(run(w,`aws s3api get-object --bucket nimbus-tfstate --key shop/terraform.tfstate --version-id ${vs[1].VersionId} recovered.tfstate`).slice(0,80));
 quiet(run(w,"terraform state push recovered.tfstate")); assert(!won(w));
 run(w,"terraform state push -force recovered.tfstate"); quiet(last(run(w,"terraform plan"),4)); assert(won(w),"recover");
 w = fresh("staterecover"); quiet(last(run(w,"terraform apply -auto-approve"),8)); assert(!won(w)); quiet(w.scenario.check(w));
@@ -276,7 +276,7 @@ sub(w,"main.tf",'  acl    = "private"\n\n  versioning {\n    enabled = true\n  }
 w.fs["main.tf"] += '\nresource "aws_s3_bucket_versioning" "reports" {\n  bucket = aws_s3_bucket.reports.id\n\n  versioning_configuration {\n    status = "Enabled"\n  }\n}\n';
 quiet(run(w,"terraform apply -auto-approve").split("\n").filter(l=>/#|Plan|Error|Warn/.test(l)).join("\n")); run(w,"terraform plan"); assert(won(w),"v5");
 w = fresh("tftest"); quiet(run(w,"terraform test")); 
-sub(w,"tests/naming.tftest.hcl",'"quest-logs-dev"','"quest-logs-data"'); run(w,"terraform test"); assert(!won(w));
+sub(w,"tests/naming.tftest.hcl",'"nimbus-logs-dev"','"nimbus-logs-data"'); run(w,"terraform test"); assert(!won(w));
 w = fresh("tftest"); sub(w,"main.tf","${var.team}\"","${var.environment}\""); quiet(last(run(w,"terraform test"),3)); assert(won(w),"tftest");
 w = fresh("perpetualdiff"); quiet(run(w,"terraform plan").split("\n").filter(l=>/#|Plan|from_port/.test(l)).join("\n")); run(w,"terraform apply -auto-approve"); quiet(run(w,"terraform plan").split("\n").filter(l=>/#|Plan/.test(l)).join("\n")); assert(!won(w));
 w = fresh("perpetualdiff"); sub(w,"main.tf","    cidr_blocks = [\"10.0.1.0/24\"]\n  }\n","    cidr_blocks = [\"10.0.1.0/24\"]\n  }\n\n  ingress {\n    from_port   = 9187\n    to_port     = 9187\n    protocol    = \"tcp\"\n    cidr_blocks = [\"10.0.50.0/24\"]\n  }\n"); delete w.fs["monitoring.tf"];
@@ -351,7 +351,7 @@ assert.match(run(b, "tofu plan"), /OpenTofu/);
 // and each one left to the lab really cannot run here.
 global.window = {};
 require(path.resolve(__dirname, "../site/data.js"));
-const Q = window.QUEST;
+const Q = window.TRACK;
 const runsIn = (id, cmd) => {
   const w = fresh(id);
   const full = fillBlanks(w, cmd);

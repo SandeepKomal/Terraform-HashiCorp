@@ -1,7 +1,7 @@
-// Content for the Terraform Quest site. Plain data, no logic.
+// Content for the DevOps Nimbus Terraform site. Plain data, no logic.
 "use strict";
 
-window.QUEST = {
+window.TRACK = {
   repo: "https://github.com/SandeepKomal/Terraform-HashiCorp",
   site: "https://sandeepkomal.github.io/Terraform-HashiCorp/",
 
@@ -384,7 +384,7 @@ window.QUEST = {
       meaning: "Init needs to know whether to move the state.", causes: ["Bucket, key or locking settings changed"], confirm: ["git diff -- versions.tf"],
       fix: ["-migrate-state if the location changed; -reconfigure if the state stays put (for example, adding locking)"], prevent: ["Review backend diffs carefully"],
       practise: ["nolock"], level: "13" },
-    { id: "backend-bucket", title: "S3 bucket does not exist (backend)", error: "Error: Failed to get existing workspaces: S3 bucket \"quest-tf-state\" does not exist.",
+    { id: "backend-bucket", title: "S3 bucket does not exist (backend)", error: "Error: Failed to get existing workspaces: S3 bucket \"nimbus-tf-state\" does not exist.",
       meaning: "The backend points at a bucket that does not exist in this account.", causes: ["Typo in bucket", "Wrong AWS account or profile"],
       confirm: ["aws s3 ls", "aws sts get-caller-identity"], fix: ["Fix the bucket name or credentials, then terraform init"],
       prevent: ["Never create a new bucket to make the error go away: you would start from empty state"], practise: ["backendbucket"], level: "13" },
@@ -435,11 +435,11 @@ window.QUEST = {
       meaning: "Names must be unique per VPC; the old group still exists.", causes: ["create_before_destroy with a fixed name", "A hand-made group with the same name"],
       confirm: ["aws ec2 describe-security-groups --filters Name=group-name,Values=web"], fix: ["Use name_prefix, or import the existing group"], prevent: ["name_prefix for replaceable resources"],
       practise: ["cbd"], level: "06" },
-    { id: "bucket-exists", title: "BucketAlreadyOwnedByYou / BucketAlreadyExists", error: "Error: creating S3 Bucket (quest-assets-2026): BucketAlreadyOwnedByYou: Your previous request to create the named bucket succeeded and you already own it.",
+    { id: "bucket-exists", title: "BucketAlreadyOwnedByYou / BucketAlreadyExists", error: "Error: creating S3 Bucket (nimbus-assets-2026): BucketAlreadyOwnedByYou: Your previous request to create the named bucket succeeded and you already own it.",
       meaning: "The bucket exists already: in your account (OwnedByYou) or someone else's (AlreadyExists; names are global).", causes: ["Bucket made by hand or by another configuration", "State lost or not migrated"],
       confirm: ["aws s3 ls", "terraform state list"], fix: ["Import it (OwnedByYou), or choose another name (AlreadyExists)"], prevent: ["Import blocks for existing objects; keep state safe"],
       practise: ["import", "backendmigrate"], level: "08" },
-    { id: "bucket-not-empty", title: "BucketNotEmpty", error: "Error: deleting S3 Bucket (quest-archive-2019): BucketNotEmpty: The bucket you tried to delete is not empty",
+    { id: "bucket-not-empty", title: "BucketNotEmpty", error: "Error: deleting S3 Bucket (nimbus-archive-2019): BucketNotEmpty: The bucket you tried to delete is not empty",
       meaning: "S3 refuses to delete a bucket with objects unless force_destroy is set.", causes: ["Destroying or removing a bucket that holds data"],
       confirm: ["aws s3 ls s3://<bucket>"], fix: ["If the data must stay: removed block with destroy = false or terraform state rm. Only empty it if you mean to delete it."],
       prevent: ["Avoid force_destroy on buckets that hold data"], practise: ["removed"], level: "11" },
@@ -447,7 +447,7 @@ window.QUEST = {
       meaning: "deletion_protection is on; AWS refuses the delete.", causes: ["terraform destroy of an environment with a protected database"],
       confirm: ["aws rds describe-db-instances"], fix: ["Set deletion_protection = false, apply, then destroy"], prevent: ["Keep it on in production; never state rm to get around it"],
       practise: ["teardown"], level: "06" },
-    { id: "acl-not-supported", title: "AccessControlListNotSupported", error: "Error: creating S3 Bucket ACL (quest-partner-reports,public-read): AccessControlListNotSupported: The bucket does not allow ACLs",
+    { id: "acl-not-supported", title: "AccessControlListNotSupported", error: "Error: creating S3 Bucket ACL (nimbus-partner-reports,public-read): AccessControlListNotSupported: The bucket does not allow ACLs",
       meaning: "New buckets enforce bucket-owner ownership, which disables ACLs.", causes: ["Old tutorials using acl = \"public-read\""], confirm: ["aws s3api get-bucket-ownership-controls --bucket <bucket>"],
       fix: ["Remove the ACL; grant access with a bucket policy or presigned URLs, and add a public access block"], prevent: ["Public access block on every bucket"],
       practise: ["publicbucket"], level: "15" },
@@ -484,7 +484,7 @@ window.QUEST = {
       meaning: "The argument still works but will be removed in a future major version of the provider.", causes: ["Code written for an older provider (S3 inline acl, versioning, lifecycle_rule)"],
       confirm: ["terraform validate", "Read the provider's upgrade guide"], fix: ["Move to the replacement resource or argument, checking the plan shows no replacement"],
       prevent: ["Fix deprecations before each provider major upgrade"], practise: ["awsv5upgrade"], level: "10" },
-    { id: "test-assertion", title: "Test assertion failed (terraform test)", error: "Error: Test assertion failed\n\n  on tests/naming.tftest.hcl line 10, in run \"bucket_name_has_environment\":\n  10:     condition     = aws_s3_bucket.logs.bucket == \"quest-logs-dev\"\n\nThe logs bucket name must end with the environment.",
+    { id: "test-assertion", title: "Test assertion failed (terraform test)", error: "Error: Test assertion failed\n\n  on tests/naming.tftest.hcl line 10, in run \"bucket_name_has_environment\":\n  10:     condition     = aws_s3_bucket.logs.bucket == \"nimbus-logs-dev\"\n\nThe logs bucket name must end with the environment.",
       meaning: "A run block's assert condition was false for the planned (or applied) values.", causes: ["A code change broke a convention the test encodes", "The test's variables no longer match the module"],
       confirm: ["terraform test -verbose", "terraform console   # evaluate the expression"], fix: ["Fix the code; change the test only when the rule itself changed, in a reviewed change"],
       prevent: ["Run terraform test in CI on every pull request"], practise: ["tftest"], level: "14" },
@@ -530,11 +530,11 @@ window.QUEST = {
     ["terraform state mv aws_instance.web aws_instance.app", "Rename an address without touching the object", "State", "moved"],
     ["terraform state rm <addr>", "Forget an object without destroying it", "State", "removed"],
     ["terraform state pull", "The raw state JSON (contains secrets)", "State", "dbpassword"],
-    ["terraform import aws_s3_bucket.assets quest-assets-2026", "Attach an existing object to an address", "State", "import"],
+    ["terraform import aws_s3_bucket.assets nimbus-assets-2026", "Attach an existing object to an address", "State", "import"],
     ["terraform taint <addr>", "Mark for replacement (prefer -replace)", "State", "taint"],
     ["terraform untaint <addr>", "Clear the tainted mark once you have checked the object is healthy", "State", "timeouts"],
-    ["aws s3api list-object-versions --bucket quest-tfstate --prefix shop/terraform.tfstate", "Every saved version of the state file (needs bucket versioning)", "State", "staterecover"],
-    ["aws s3api get-object --bucket quest-tfstate --key shop/terraform.tfstate recovered.tfstate", "Download the state; add --version-id for an older version", "State", "staterecover"],
+    ["aws s3api list-object-versions --bucket nimbus-tfstate --prefix shop/terraform.tfstate", "Every saved version of the state file (needs bucket versioning)", "State", "staterecover"],
+    ["aws s3api get-object --bucket nimbus-tfstate --key shop/terraform.tfstate recovered.tfstate", "Download the state; add --version-id for an older version", "State", "staterecover"],
     ["terraform force-unlock <lock-id>", "Release a stale lock (owner must be gone)", "State", "lockstuck"],
     ["terraform state push errored.tfstate", "Overwrite remote state with a file (last resort)", "State"],
     ["terraform workspace list", "Workspaces in this backend", "Workspaces and backends", "workspace"],

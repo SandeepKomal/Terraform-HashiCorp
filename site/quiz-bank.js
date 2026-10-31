@@ -1,7 +1,7 @@
-// Question bank for the Terraform Quest quiz. Plain data, no logic.
+// Question bank for the DevOps Nimbus Terraform quiz. Plain data, no logic.
 "use strict";
 const q = (text, options, answer, why) => ({ q: text, options, answer, why });
-window.QUEST_QUIZ_BANK = {
+window.TRACK_QUIZ_BANK = {
   "00": [
     q("You clone a repository and run `terraform plan`. It fails with `Inconsistent dependency lock file`. What should you run?", ["`terraform init`", "`terraform apply`", "`terraform validate`", "`terraform providers lock`"], 0, "init installs the providers the lock file and configuration need. Every fresh checkout needs it before plan."),
     q("What does `.terraform.lock.hcl` record?", ["The exact provider versions and their checksums", "Which user holds the state lock", "The planned changes", "The module source code"], 0, "It pins provider builds so everyone and CI use the same ones. Commit it; the state lock is a different thing in the backend."),
@@ -85,7 +85,7 @@ window.QUEST_QUIZ_BANK = {
   "08": [
     q("A data source filter matches nothing. What happens?", ["The plan fails, for example `no matching EC2 VPC found`", "It returns null and continues", "Terraform creates the VPC", "It picks the default VPC"], 0, "Data sources must match exactly one object."),
     q("Which is the reviewable way to bring an existing bucket under Terraform?", ["An `import` block with `to` and `id`, applied after a plan", "Renaming the bucket in code", "`terraform state push`", "Deleting and recreating it"], 0, "Import blocks show up in the plan as \"will be imported\" before anything happens."),
-    q("`terraform import aws_s3_bucket.assets quest-assets-2026` says the address does not exist in the configuration. Why?", ["The resource block must exist in code before importing", "The bucket name is wrong", "The provider is not installed", "Imports need -target"], 0, "Write the resource block first, then import into it."),
+    q("`terraform import aws_s3_bucket.assets nimbus-assets-2026` says the address does not exist in the configuration. Why?", ["The resource block must exist in code before importing", "The bucket name is wrong", "The provider is not installed", "Imports need -target"], 0, "Write the resource block first, then import into it."),
     q("Why not just rename the bucket in code when apply says BucketAlreadyOwnedByYou?", ["It creates a second, empty bucket and leaves the real one unmanaged", "Bucket names cannot be changed", "It would delete the old bucket", "It works fine"], 0, "Import the existing object instead."),
     q("Data sources read from:", ["The real cloud, during plan (or apply if their inputs are unknown)", "The state file only", "The lock file", "Your local cache"], 0, "That is why a missing tag or wrong region fails the plan."),
     q("What does an `import` block need in Terraform 1.5+?", ["`to` (the resource address) and `id` (the real object's ID)", "Only the ID", "A provider alias", "A moved block"], 0, "The resource block must also exist in code; the plan shows the import before apply."),

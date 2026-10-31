@@ -4,9 +4,9 @@ A practical collection of Terraform examples for learning and demonstrating AWS 
 
 > **Learning repository:** Most directories are standalone examples. Review variables and security settings before applying anything to an AWS account.
 
-## Terraform Quest: learn by fixing
+## DevOps Nimbus Terraform: zero to on-call, by fixing
 
-**[Terraform Quest](https://sandeepkomal.github.io/Terraform-HashiCorp/)** is the free learning site for this repository, built from `site/`:
+**[DevOps Nimbus Terraform](https://sandeepkomal.github.io/Terraform-HashiCorp/)** is the free learning site for this repository, built from `site/`:
 
 - a **playground**: a `terraform` CLI in the browser over a modelled configuration, state and AWS account, with 49 incidents (state locks and recovery, drift, replacements, imports, modules, provider upgrades, API limits, tests, CI and security), each with hints and wrong moves that do not fix it;
 - an **HCL X-ray** that explains every line of a `.tf` file and flags risky settings;

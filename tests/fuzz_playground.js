@@ -17,13 +17,13 @@ const WORDS = ["terraform", "init", "plan", "apply", "destroy", "validate", "fmt
   "new", "select", "delete", "force-unlock", "taint", "untaint", "providers", "lock", "console", "graph", "refresh", "version", "-auto-approve", "-upgrade", "-reconfigure",
   "-migrate-state", "-backend=false", "-refresh-only", "-destroy", "-target=aws_instance.app", "-replace=aws_instance.api", "-var", "environment=prod", "-var=x", "-var-file=x.tfvars",
   "-out=tfplan", "tfplan", "-lock=false", "-input=false", "-json", "-raw", "-check", "-diff", "-recursive", "-platform=linux_amd64", "-force", "-or-create", "staging", "prod",
-  "aws_s3_bucket.site", "aws_instance.web", "aws_instance.runner[0]", 'aws_instance.runner["bob"]', "module.vpc", "module.network.aws_vpc.this", "quest-assets-2026", "yes", "no",
+  "aws_s3_bucket.site", "aws_instance.web", "aws_instance.runner[0]", 'aws_instance.runner["bob"]', "module.vpc", "module.network.aws_vpc.this", "nimbus-assets-2026", "yes", "no",
   "ls", "-a", "cat", "-n", "main.tf", "versions.tf", "variables.tf", ".terraform.lock.hcl", "edit", "sed", "-i", "s/a/b/", "s/(/x/", "echo", ">>", ">", "rm", "-rf", ".terraform",
   "export", "TF_VAR_environment=staging", "unset", "AWS_PROFILE", "env", "grep", "-rn", "password", "|", "&&", ";", "||", "head", "tail", "wc", "-l", "tfenv", "use", "install",
   "1.10.5", "1.9.8", "aws", "sts", "get-caller-identity", "s3", "ec2", "describe-instances", "dynamodb", "scan", "--table-name", "tf-locks", "ci", "run", "tofu", "'", "\"", "$", "${x}", "\\", "--", "-"];
 const LINES = ['resource "aws_s3_bucket" "x" {', "}", "{", 'bucket = "b"', "count = 2", "for_each = toset([\"a\"])", "for_each = [1, 2]", "x = var.nope", "y = local.z", "z = aws_nope.n.id",
   'tags = { Name = "${each.key}" }', "lifecycle {", "prevent_destroy = true", "create_before_destroy = true", "ignore_changes = [tags]", 'moved {', 'from = aws_instance.web', 'to = aws_instance.app',
-  'removed {', 'import {', 'id = "quest-assets-2026"', 'variable "v" {', "default = 1", 'output "o" {', "value = var.v", "sensitive = true", 'module "m" {', 'source = "./nope"',
+  'removed {', 'import {', 'id = "nimbus-assets-2026"', 'variable "v" {', "default = 1", 'output "o" {', "value = var.v", "sensitive = true", 'module "m" {', 'source = "./nope"',
   'data "aws_vpc" "v" {', 'provider = aws.x', "depends_on = [aws_s3_bucket.x]", "a = [", "b = (1 +", '"unterminated', "<<EOT", "EOT", "c = 1 ? 2 : 3", "d = [for x in [1] : x]",
   "e = cidrsubnet(\"10.0.0.0/16\", 40, 1)", "f = file(\"nope\")", "g = jsondecode(\"{\")", "# comment", "/* open comment", ""];
 

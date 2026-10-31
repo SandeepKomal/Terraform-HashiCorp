@@ -1,8 +1,8 @@
-// Terraform Quest site. No dependencies, no network requests.
+// DevOps Nimbus Terraform site. No dependencies, no network requests.
 "use strict";
 
 (function () {
-  const Q = window.QUEST;
+  const Q = window.TRACK;
   const $ = (sel) => document.querySelector(sel);
   const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
   const scrollToEl = (el) => el.scrollIntoView({ block: "start", behavior: still() ? "auto" : "smooth" });
@@ -48,7 +48,6 @@
   };
   const exampleUrl = (lv) => (lv.example ? `${Q.repo}/tree/main/${lv.example}` : null);
 
-  $("#gh-link").href = Q.repo;
   document.querySelectorAll("[data-repo]").forEach((a) => { a.href = Q.repo + a.dataset.repo; });
 
   // Copy a deep link to the clipboard; the button says what happened.
@@ -152,10 +151,10 @@
       }
       const isDone = done.has(lv.id);
       const ex = exampleUrl(lv);
-      list.append(h("li.level" + (isDone ? ".done" : ""), null,
+      list.append(h("li.level" + (isDone ? ".done" : ""), { id: "lv-" + lv.id },
         h("input", {
-          type: "checkbox", id: "lv-" + lv.id, checked: isDone, "aria-label": `Mark level ${lv.id} complete`,
-          onchange: (e) => { if (e.target.checked) done.add(lv.id); else done.delete(lv.id); store.set("done", [...done]); renderPath(); }
+          type: "checkbox", checked: isDone, "aria-label": `Mark level ${lv.id} complete`,
+          onchange: (e) => { if (e.target.checked) done.add(lv.id); else done.delete(lv.id); store.set("done", [...done]); if (e.target.checked) window.TQEngage.active(); renderPath(); }
         }),
         h("span.num", null, lv.id),
         h("span.what", null,
@@ -222,7 +221,7 @@
   // --- quiz ----------------------------------------------------------------
 
   const EXAM_SIZE = 20;
-  const questionsFor = (id) => [...(Q.quiz[id] || []), ...((window.QUEST_QUIZ_BANK || {})[id] || [])].map((item) => ({ ...item, level: id }));
+  const questionsFor = (id) => [...(Q.quiz[id] || []), ...((window.TRACK_QUIZ_BANK || {})[id] || [])].map((item) => ({ ...item, level: id }));
   function shuffle(list) {
     const a = [...list];
     for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
@@ -247,7 +246,7 @@
       bar.style.width = (answered / items.length * 100) + "%";
       if (answered === items.length) {
         const pct = Math.round(correct / items.length * 100);
-        if (!exam) { const all = quizScores(); all[mode] = Math.max(all[mode] || 0, pct); store.set("quiz", all); renderPath(); }
+        if (!exam) { const all = quizScores(); all[mode] = Math.max(all[mode] || 0, pct); store.set("quiz", all); window.TQEngage.active(); renderPath(); }
         score.append(h("p.result", null, h("strong", null, `${pct}%. `),
           pct === 100 ? "Perfect score." : pct >= 75 ? "Strong. Review the explanations you missed." : "Read the explanations, practise the level's scenarios, and try again.",
           " ", h("button.linkish", { type: "button", onclick: renderQuiz }, exam ? "New exam" : "Try again")));

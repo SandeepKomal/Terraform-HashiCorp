@@ -12,7 +12,7 @@ function render() {
   require(path.join(root, "site/data.js"));
   require(path.join(root, "site/hcl.js"));
   require(path.join(root, "site/playground.js"));
-  const Q = window.QUEST;
+  const Q = window.TRACK;
   const titles = Object.fromEntries(window.TQSim.SCENARIOS.map((s) => [s.id, s.title]));
   const esc = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const code = (t) => esc(t).replace(/`([^`]+)`/g, "<code>$1</code>");
@@ -26,16 +26,16 @@ function render() {
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
   <meta name="description" content="Every common Terraform error with its exact message, what it means, the likely causes, how to confirm, the fix and how to prevent it: ${Q.problems.length} entries.">
   <meta property="og:type" content="article">
-  <meta property="og:title" content="Terraform errors and fixes: Terraform Quest">
+  <meta property="og:title" content="Terraform errors and fixes · DevOps Nimbus">
   <meta property="og:description" content="Exact Terraform error messages with causes, fixes and prevention.">
   <link rel="canonical" href="${Q.site}problems.html">
   <title>Terraform errors and fixes</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
 </head>
 <body>
   <main class="wrap problems-page">
-    <p class="eyebrow"><img src="logo.svg" alt="" width="28" height="28"><a href="./">Terraform Quest</a></p>
+    <p class="eyebrow"><img src="logo.svg" alt="" width="28" height="28"><a href="./">DevOps Nimbus · Terraform</a></p>
     <h1>Terraform errors and fixes</h1>
     <p class="lede">${Q.problems.length} errors and surprises, each with the exact message, why it happens, how to confirm the cause, the fix and how to prevent it. Then learn it for good: break and fix each one yourself in the <a href="./#play/noinit">browser playground</a>. The <a href="./#doctor">interactive version</a> also searches pasted error text and opens each fix in a practice scenario.</p>
     <nav aria-label="Problems">`);
