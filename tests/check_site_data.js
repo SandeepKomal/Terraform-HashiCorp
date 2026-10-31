@@ -60,7 +60,7 @@ for (const f of ["index.html", "problems.html"]) {
   const html = fs.readFileSync(path.join(root, "site", f), "utf8");
   assert.ok(html.includes(`content="${CSP}"`), `${f}: CSP`);
   assert.ok(!/\sstyle="|\son[a-z]+="/i.test(html), `${f}: no inline styles or handlers`);
-  assert.ok(!/(src|href)="https?:\/\/(?!github\.com|sandeepkomal\.github\.io)/.test(html), `${f}: nothing loaded from other sites`);
+  assert.ok(!/(src|href)="https?:\/\/(?!github\.com|sandeepkomal\.github\.io|docs\.github\.com\/en\/site-policy\/)/.test(html), `${f}: nothing loaded from other sites`);
   assert.ok(html.includes("Terraform® and HashiCorp® are trademarks of HashiCorp, Inc. This project is independent and not affiliated with HashiCorp."), `${f}: trademark line`);
 }
 for (const f of fs.readdirSync(path.join(root, "site")).filter((x) => x.endsWith(".js"))) {
