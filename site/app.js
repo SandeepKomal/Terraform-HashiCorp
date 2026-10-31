@@ -73,7 +73,11 @@
     current = tab;
     if (tab !== "path" && flowTimer) stopFlow();
     for (const t of tabs) $("#tab-" + t).hidden = t !== tab;
-    document.querySelectorAll("header nav a").forEach((a) => {
+    const fixTabs = [...document.querySelectorAll(".mode.fix a[data-tab]")].map((a) => a.dataset.tab);
+    const mode = fixTabs.includes(tab) ? "fix" : "learn";
+    document.documentElement.dataset.mode = mode;
+    document.querySelectorAll(".sw").forEach((a) => (a.classList.contains(mode) ? a.setAttribute("aria-current", "true") : a.removeAttribute("aria-current")));
+    document.querySelectorAll(".subnav a").forEach((a) => {
       if (a.dataset.tab === tab) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
     });
     if (want === "play" && sub && pg() && titles()[sub]) { if (pg().current() !== sub || !document.activeElement || document.activeElement.id !== "pg-input") pg().load(sub); }
